@@ -1,6 +1,6 @@
 ﻿using HarmonyLib;
 
-namespace CameraLCD.Gui
+namespace CameraLCD.Patches
 {
     [HarmonyPatch]
     public static class Patch_MyRender11

@@ -171,11 +171,9 @@ namespace CameraLCD
             bool ogFlares = debugOverrides.Flares;
             bool ogSSAO = debugOverrides.SSAO;
             bool ogBloom = debugOverrides.Bloom;
-            bool ogFxaa = debugOverrides.Fxaa;
             debugOverrides.Flares = false;
             debugOverrides.SSAO = false;
             debugOverrides.Bloom = false;
-            //debugOverrides.Fxaa = false;
 
             {
                 Vector2I ogViewportResolution = MyRender11.ViewportResolution;
@@ -183,16 +181,16 @@ namespace CameraLCD
 
                 MyRender11.ViewportResolution = surfaceRtv.Size;
                 MyRender11.ResolutionI = surfaceRtv.Size;
-                MatrixD viewMatrix = CreateViewMatrix(_camera);
                 float fov = _camera.GetFov();
-                SetCameraViewMatrix(viewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, fov, fov, GetCameraPosition(_camera), 1);
+                GetCameraViewMatrixAndPosition(_camera, out MatrixD viewMatrix, out Vector3D cameraPos);
+                SetCameraViewMatrix(viewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, fov, fov, cameraPos, 1);
+
+                MyRender11.RC.ClearRtv(surfaceRtv, new RawColor4(0, 0, 0, 0));
 
                 var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv("CameraLCD_TempRtv", surfaceRtv.Size.X, surfaceRtv.Size.Y, surfaceRtv.Format);
-
                 MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
                 debugAmbientOcclusion?.Release();
 
-                MyRender11.RC.ClearRtv(surfaceRtv, new RawColor4(0, 0, 0, 0));
                 CopyReplaceNoAlpha(surfaceRtv, borrowedRtv);
 
                 MyRender11.ViewportResolution = ogViewportResolution;
@@ -205,7 +203,6 @@ namespace CameraLCD
             debugOverrides.Flares = ogFlares;
             debugOverrides.SSAO = ogSSAO;
             debugOverrides.Bloom = ogBloom;
-            //debugOverrides.Fxaa = ogFxaa;
 
             MyRender11.DeviceInstance.ImmediateContext1.GenerateMips(surfaceRtv.Srv);
 
@@ -264,15 +261,10 @@ namespace CameraLCD
             MyRender11.SetupCameraMatrices(renderMessage);
         }
 
-        private static MatrixD CreateViewMatrix(MyCameraBlock camera)
-        {
-            return camera.GetViewMatrix();
-        }
-
-        private static Vector3D GetCameraPosition(MyCameraBlock camera)
+        private static void GetCameraViewMatrixAndPosition(MyCameraBlock camera, out MatrixD viewMatrix, out Vector3D position)
         {
             MatrixD matrix = camera.WorldMatrix;
-            matrix.Translation += camera.WorldMatrix.Forward * 0.20000000298023224;
+            matrix.Translation += camera.WorldMatrix.Forward * 0.2;
             if (camera.Model.Dummies != null)
             {
                 foreach (KeyValuePair<string, MyModelDummy> dummy in camera.Model.Dummies)
@@ -285,7 +277,8 @@ namespace CameraLCD
                     }
                 }
             }
-            return matrix.Translation;
+            position = matrix.Translation;
+            MatrixD.Invert(ref matrix, out viewMatrix);
         }
 
         private bool TryGetRenderTextureName(out string name)
