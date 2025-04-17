@@ -164,12 +164,7 @@ namespace CameraLCD
             if (surfaceRtv is null)
                 return false;
 
-            Vector2I ogViewportResolution = MyRender11.ViewportResolution;
-            Vector2I ogResolutionI = MyRender11.ResolutionI;
-            bool ogLods = true;
-
-            if (!Plugin.Settings.UpdateLOD)
-                ogLods = SetLoddingEnabled(false);
+            bool ogLods = SetLoddingEnabled(false);
             bool ogDrawBillboards = MyRender11.Settings.DrawBillboards;
             MyRender11.Settings.DrawBillboards = false;
             MyRenderDebugOverrides debugOverrides = MyRender11.DebugOverrides;
@@ -183,6 +178,9 @@ namespace CameraLCD
             //debugOverrides.Fxaa = false;
 
             {
+                Vector2I ogViewportResolution = MyRender11.ViewportResolution;
+                Vector2I ogResolutionI = MyRender11.ResolutionI;
+
                 MyRender11.ViewportResolution = surfaceRtv.Size;
                 MyRender11.ResolutionI = surfaceRtv.Size;
                 MatrixD viewMatrix = CreateViewMatrix(_camera);
@@ -202,8 +200,7 @@ namespace CameraLCD
                 SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.Position, 0);
             }
 
-            if (!Plugin.Settings.UpdateLOD)
-                SetLoddingEnabled(ogLods);
+            SetLoddingEnabled(ogLods);
             MyRender11.Settings.DrawBillboards = ogDrawBillboards;
             debugOverrides.Flares = ogFlares;
             debugOverrides.SSAO = ogSSAO;

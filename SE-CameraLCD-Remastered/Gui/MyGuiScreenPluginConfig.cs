@@ -1,13 +1,7 @@
-﻿using Sandbox.Graphics.GUI;
-using Sandbox;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VRage.Utils;
+﻿using Sandbox;
+using Sandbox.Graphics.GUI;
 using VRage;
+using VRage.Utils;
 using VRageMath;
 
 namespace CameraLCD.Gui
@@ -19,7 +13,7 @@ namespace CameraLCD.Gui
         private MyGuiControlCombobox ratioCombobox;
         private MyGuiControlLabel rangeLabel;
 
-        public MyGuiScreenPluginConfig() : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, new Vector2(0.7264286f, 0.8633588f), false, null, MySandboxGame.Config.UIBkOpacity, MySandboxGame.Config.UIOpacity)
+        public MyGuiScreenPluginConfig() : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, new Vector2(0.6f, 0.4f), false, null, MySandboxGame.Config.UIBkOpacity, MySandboxGame.Config.UIOpacity)
         {
             EnabledBackgroundFade = true;
             CloseButtonEnabled = true;
@@ -82,23 +76,23 @@ namespace CameraLCD.Gui
             Controls.Add(rangeLabel);
             pos.Y += rangeSlider.Size.Y + space;
 
-            MyGuiControlCheckbox headFixCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.HeadFix, toolTip: "Fix to render your own head in camera view", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            headFixCheckbox.IsCheckedChanged += IsHeadfixCheckedChanged;
-            Controls.Add(headFixCheckbox);
-            AddCaption(headFixCheckbox, "Head fix");
-            pos.Y += headFixCheckbox.Size.Y + space;
+            //MyGuiControlCheckbox headFixCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.HeadFix, toolTip: "Fix to render your own head in camera view", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
+            //headFixCheckbox.IsCheckedChanged += IsHeadfixCheckedChanged;
+            //Controls.Add(headFixCheckbox);
+            //AddCaption(headFixCheckbox, "Head fix");
+            //pos.Y += headFixCheckbox.Size.Y + space;
 
-            MyGuiControlCheckbox lodCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.UpdateLOD, toolTip: "LOD update between frames", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            lodCheckbox.IsCheckedChanged += IsLODCheckedChanged;
-            Controls.Add(lodCheckbox);
-            AddCaption(lodCheckbox, "Update LOD");
-            pos.Y += lodCheckbox.Size.Y + space;
+            //MyGuiControlCheckbox lodCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.UpdateLOD, toolTip: "LOD update between frames", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
+            //lodCheckbox.IsCheckedChanged += IsLODCheckedChanged;
+            //Controls.Add(lodCheckbox);
+            //AddCaption(lodCheckbox, "Update LOD");
+            //pos.Y += lodCheckbox.Size.Y + space;
 
-            MyGuiControlCheckbox aspectCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.LockAspectRatio, toolTip: "Fix distortion by locking the aspect ratio", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            aspectCheckbox.IsCheckedChanged += IsAspectCheckedChanged;
-            Controls.Add(aspectCheckbox);
-            AddCaption(aspectCheckbox, "Lock Aspect Ratio");
-            pos.Y += aspectCheckbox.Size.Y + space;
+            //MyGuiControlCheckbox aspectCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.LockAspectRatio, toolTip: "Fix distortion by locking the aspect ratio", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
+            //aspectCheckbox.IsCheckedChanged += IsAspectCheckedChanged;
+            //Controls.Add(aspectCheckbox);
+            //AddCaption(aspectCheckbox, "Lock Aspect Ratio");
+            //pos.Y += aspectCheckbox.Size.Y + space;
 
             // Bottom
             pos = new Vector2(0, (m_size.Value.Y / 2) - space);
