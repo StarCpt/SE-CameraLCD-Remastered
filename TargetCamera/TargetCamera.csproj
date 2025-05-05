@@ -2,12 +2,12 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
-    <RootNamespace>VRageRenderAccessor</RootNamespace>
+    <RootNamespace>CameraLCD</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NuGetAuditMode>all</NuGetAuditMode>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
@@ -327,6 +327,8 @@
     <PackageReference Include="Lib.Harmony" Version="2.3.3" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SE-VRageRenderAccessorLib\SE-VRageRenderAccessor.csproj" />
   </ItemGroup>
 </Project>

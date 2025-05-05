@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Linq;
+using DeltaWing.TargetCamera;
 
 namespace CameraLCD
 {
@@ -26,6 +27,7 @@ namespace CameraLCD
 
         public static bool Draw()
         {
+            TargetCamera.Draw();
             _renderCount++;
             if (!ShouldDraw() || _displays.Count == 0)
                 return false;

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a94f0827-9266-429d-9f14-ef0f1c67df3a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/TargetCamera/TargetCamera.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TargetCamera/TargetCamera.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered.sln" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/CameraLCDSettings.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/CameraLCDSettings.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/CameraLcdManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/CameraLcdManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/CameraTSS.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/CameraTSS.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/DisplayId.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/DisplayId.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Gui/MyGuiScreenPluginConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Gui/MyGuiScreenPluginConfig.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/MyCameraBlockAccessor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/MyCameraBlockAccessor.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Patches/Patch_LoadScripts.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Patches/Patch_LoadScripts.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Patches/Patch_MyCameraBlock.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Patches/Patch_MyCameraBlock.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Patches/Patch_MyRender11.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Patches/Patch_MyRender11.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Plugin.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Plugin.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Properties/AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Properties/AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/SE-CameraLCD-Remastered.csproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SE-VRageRenderAccessorLib/SE-VRageRenderAccessor.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SE-VRageRenderAccessorLib/SE-VRageRenderAccessor.csproj" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/02/1d2ae019/MyBlockBuilderRotationHints.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/07/b3a3b089/MyHudMarkerRender.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/08/bf27a8ab/MyRenderComponentInventoryItem.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/0a/ac522652/MyThirdPersonSpectator.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/3c/4f825608/MyCameraBlock.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/56/84dd2ff1/MyGuiScreenGamePlay.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/5a/3c2c9f69/MySmartPath.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/75/97bc9dea/MySessionComponentVoxelHand.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/84/2dd54384/MyGuiScreenHudBase.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/8e/1e0aa3e8/MyGuiScreenHudSpace.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/a6/38c40bba/MySector.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/b7/282252ca/MyVoiceChatSessionComponent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/ba/9ce824d3/MySession.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/34f70babce284fbd8bd6b4a545e86609a1a588/de/358af8d9/MyHudCrosshair.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5fc89e31eedc4d00a398eb23fa21b4c1402588/ad/8e719645/MyCamera.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5fc89e31eedc4d00a398eb23fa21b4c1402588/e0/4e797c37/MyTransparentGeometry.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/c3eb13032a25453e96782e838f7f03f890f88/2d/baccdcd7/MatrixD.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e6771c4a6c304bc4a5c11fc48cd4d6497f788/8b/3bdbc637/MyGuiManager.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/TargetCamera/CameraTSS.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/TargetCamera/Patches/Patch_MyRender11.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/TargetCamera/TargetCamera.cs" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="2wgCXHg4XpQmTGUEFxTV0GZceXL" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a94f0827-9266-429d-9f14-ef0f1c67df3a" name="Changes" comment="" />
+      <created>1746453867943</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1746453867943</updated>
+      <workItem from="1746453869017" duration="8516000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
+  <component name="VcsManagerConfiguration">
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+  </component>
+</project>

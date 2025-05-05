@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DeltaWing.TargetCamera;
 using VRage.Game.Entity;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI.Ingame;
@@ -150,6 +151,7 @@ namespace CameraLCD
 
         public bool Draw()
         {
+            
             if (!IsActive || _lcdComponent.ContentType != ContentType.SCRIPT)
                 return false;
 

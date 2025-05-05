@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35825.156
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SE-CameraLCD-Remastered", "SE-CameraLCD-Remastered\SE-CameraLCD-Remastered.csproj", "{C56C604C-09B5-4330-A762-BE7B1CC2F198}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TargetCamera", "TargetCamera\TargetCamera.csproj", "{C56C604C-09B5-4330-A762-BE7B1CC2F198}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SE-VRageRenderAccessor", "SE-VRageRenderAccessorLib\SE-VRageRenderAccessor.csproj", "{8372A748-330A-46A2-84AE-FD308EED03CC}"
 EndProject

@@ -3,6 +3,7 @@ using HarmonyLib;
 using Sandbox.Graphics.GUI;
 using System;
 using System.Reflection;
+using DeltaWing.TargetCamera;
 using VRage.Plugins;
 
 namespace CameraLCD
@@ -23,6 +24,8 @@ namespace CameraLCD
 
         public void Update()
         {
+            TargetCamera.Update();
+            
         }
 
         public void OpenConfigDialog()
