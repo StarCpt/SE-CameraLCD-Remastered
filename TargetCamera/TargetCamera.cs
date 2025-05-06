@@ -33,40 +33,16 @@ namespace DeltaWing.TargetCamera
 {
     public class TargetCamera
     {
-
         public static Vector2I Size = new Vector2I(640, 360);
         
         public static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
         public static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
         public static IMyEntityController PlayerController => LocalPlayer?.Controller;
 
-
-
         public static MyEntity targetEntity;
         public static MyCockpit cockpit;
 
-
-        private static byte[] buffer = Array.Empty<byte>();
-
         public static string textureName = "TargetCamera";
-        
-        static Vector2 UVOffset = new Vector2(0);
-        static MyBillboard Billboard = new MyBillboard()
-        {
-            Material = MyStringId.GetOrCompute(textureName),
-            Color = Color.White,
-            UVSize = new Vector2(0.5f, 1), // important
-            BlendType = MyBillboard.BlendTypeEnum.Standard,
-            DistanceSquared = 1f,
-            LocalType = MyBillboard.LocalTypeEnum.Custom,
-            Reflectivity = 0f,
-            ColorIntensity = 1f,
-            AlphaCutout = 0f,
-            CustomViewProjection = -1,
-            ParentID = uint.MaxValue,
-            SoftParticleDistanceScale = 0f,
-        };
-        
         
         public static void Update()
         {
@@ -76,16 +52,22 @@ namespace DeltaWing.TargetCamera
             
             if (!(controlledEntity?.Entity is MyCockpit cockpit))
             {
+                TargetCamera.cockpit = null;
+                targetEntity = null;
                 return;
             }
 
             TargetCamera.cockpit = cockpit;
-            targetEntity = MyEntities.GetEntityById(cockpit.TargetData.TargetId);
+            var targetData = cockpit.TargetData;
+            targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
         }
+
         // TODO: Credit Lurking StarCpt for doing most of the heavy lifting with the camera API
         public static void Draw()
         {
-            if (targetEntity == null || cockpit == null) return;
+            MyCamera renderCamera = MySector.MainCamera;
+
+            if (targetEntity == null || cockpit == null || renderCamera == null) return;
             var controlledGrid = cockpit.CubeGrid;
             MyLog.Default.Log(MyLogSeverity.Info, cockpit.TargetData.TargetId.ToString());
             
@@ -95,55 +77,73 @@ namespace DeltaWing.TargetCamera
             MyLog.Default.Log(MyLogSeverity.Info, $"Controlled grid exists: {controlledGrid != null}");
             MyLog.Default.Log(MyLogSeverity.Info, $"Target entity exists: {targetEntity != null}");
             // Step 2: Break early if it doesn't exist
-            if (controlledGrid == null || targetEntity == null) return;
+            if (controlledGrid == null) return;
             
             MyLog.Default.Log(MyLogSeverity.Info, "Got controlled grid and target entity");
             
+            #region disble post-processing effects and lod changes
+
+            bool ogLods = SetLoddingEnabled(false);
+            bool ogDrawBillboards = MyRender11.Settings.DrawBillboards;
+            MyRender11.Settings.DrawBillboards = false;
+            MyRenderDebugOverrides debugOverrides = MyRender11.DebugOverrides;
+            bool ogFlares = debugOverrides.Flares;
+            bool ogSSAO = debugOverrides.SSAO;
+            bool ogBloom = debugOverrides.Bloom;
+            debugOverrides.Flares = false;
+            debugOverrides.SSAO = false;
+            debugOverrides.Bloom = false;
+
+            #endregion
             
             // Step 3: Get target camera details (near clip, fov, cockpit up)
-            float fov = (float)GetFov(controlledGrid, targetEntity);
-            fov = 90; //TODO: Temp, remove this
-            float nearClip = (float)controlledGrid.PositionComp.WorldVolume.Radius;
-            var up = cockpit.WorldMatrix.Up;
-            
-            MyLog.Default.Log(MyLogSeverity.Info, "Got param values");
+            float targetCameraFov = (float)GetFov(controlledGrid, targetEntity);
+            float targetCameraNearPlane = (float)controlledGrid.PositionComp.WorldVolume.Radius;
+            var targetCameraUp = cockpit.WorldMatrix.Up;
+            var targetCameraPos = controlledGrid.PositionComp.WorldVolume.Center;
 
             // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
 
-            var cameraViewMatrix = GetPointAtTarget(controlledGrid, targetEntity, up);
-            
-            MyLog.Default.Log(MyLogSeverity.Info, "Got point at");
+            var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, targetEntity.PositionComp.WorldVolume.Center, targetCameraUp);
 
             // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
-            
-            MyCamera renderCamera = MySector.MainCamera;
-            MyLog.Default.Log(MyLogSeverity.Info, "Got main camera");
-            SetCameraViewMatrix(cameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, fov, fov, nearClip, renderCamera.FarPlaneDistance, renderCamera.FarFarPlaneDistance, controlledGrid.PositionComp.WorldVolume.Center, lastMomentUpdateIndex: 1, smooth: false);
-
-
             Vector2I ogResolutionI = MyRender11.ResolutionI;
-                
+
+            MyRender11.ViewportResolution = Size;
+            MyRender11.ResolutionI = Size;
+            SetCameraViewMatrix(targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, targetCameraFov, targetCameraFov, targetCameraNearPlane, targetCameraPos, 1);
+
             // Draw the game to the screen
             var backbufferFormat = Patch_MyRender11.RenderTarget.Rtv.Description.Format;
             var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv(textureName, Size.X, Size.Y, backbufferFormat);
             
             MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
-            
+            debugAmbientOcclusion.Release();
+
             MyRender11.DeviceInstance.ImmediateContext1.CopySubresourceRegion(
                 borrowedRtv.Resource, 0, null, 
                 Patch_MyRender11.RenderTarget.Resource, 0, 
                 ogResolutionI.X - Size.X, ogResolutionI.Y - Size.Y
                 );
-                
 
-            
-            
             borrowedRtv.Release();
             MyLog.Default.Log(MyLogSeverity.Info, "Took an image snapshot");
-            // Restore camera position
-            SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.FarFarPlaneDistance, renderCamera.Position, lastMomentUpdateIndex: 0, smooth: false);
 
+            // Restore camera position
+            MyRender11.ViewportResolution = ogResolutionI;
+            MyRender11.ResolutionI = ogResolutionI;
+            SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.Position, 0);
             MyLog.Default.Log(MyLogSeverity.Info, "Reset camera");
+
+            #region restore post-processing and lod settings
+
+            SetLoddingEnabled(ogLods);
+            MyRender11.Settings.DrawBillboards = ogDrawBillboards;
+            debugOverrides.Flares = ogFlares;
+            debugOverrides.SSAO = ogSSAO;
+            debugOverrides.Bloom = ogBloom;
+
+            #endregion
         }
 
         public static double GetFov(MyCubeGrid controlledGrid, MyEntity targetEntity)
@@ -168,51 +168,28 @@ namespace DeltaWing.TargetCamera
             return fov;
         }
         
-        
-        public static MatrixD GetPointAtTarget(MyCubeGrid controlledGrid, MyEntity targetEntity, Vector3D up)
+        private static bool SetLoddingEnabled(bool enabled)
         {
-            Vector3D camPos = controlledGrid.PositionComp.WorldVolume.Center;
-            Vector3D targetPos = targetEntity.PositionComp.WorldVolume.Center;
-            
-            
-            MatrixD viewMatrix = GetLookAtMatrix(camPos, targetPos, up);
+            // Reference: MyRender11.ProcessMessageInternal(MyRenderMessageBase message, int frameId)
+            //              case MyRenderMessageEnum.UpdateNewLoddingSettings
 
-            viewMatrix.Forward = -viewMatrix.Forward;
-            MyLog.Default.Log(MyLogSeverity.Info, $"Fromto: {(targetPos - camPos).Normalized()} , Matrix: {viewMatrix.Forward}, dot: {(targetPos - camPos).Normalized().Dot(viewMatrix.Forward)}");
+            MyNewLoddingSettings loddingSettings = MyCommon.LoddingSettings;
+            MyGlobalLoddingSettings globalSettings = loddingSettings.Global;
+            bool initial = globalSettings.IsUpdateEnabled;
+            if (initial == enabled)
+                return initial;
 
-            return viewMatrix;
+            globalSettings.IsUpdateEnabled = enabled;
+            loddingSettings.Global = globalSettings;
+            MyManagers.GeometryRenderer.IsLodUpdateEnabled = enabled;
+            MyManagers.GeometryRenderer.m_globalLoddingSettings = globalSettings;
+            MyManagers.ModelFactory.OnLoddingSettingChanged();
+            return initial;
         }
-        
-        
-        public static MatrixD GetLookAtMatrix(Vector3D fromPos, Vector3D toPos, Vector3D upHint)
+
+        private static void SetCameraViewMatrix(MatrixD viewMatrix, Matrix projectionMatrix, Matrix projectionFarMatrix, float fov, float fovSkybox, float nearPlane, Vector3D cameraPosition, int lastMomentUpdateIndex)
         {
-            // In Keen, Forward is -Z, so we point -Z toward the target
-            Vector3D forward = Vector3D.Normalize(toPos - fromPos);
-
-            // Protect against up being parallel to forward
-            if (Vector3D.IsZero(Vector3D.Cross(upHint, forward)))
-                upHint = Vector3D.CalculatePerpendicularVector(forward);
-
-            Vector3D right = Vector3D.Normalize(Vector3D.Cross(upHint, forward));
-            Vector3D up = Vector3D.Normalize(Vector3D.Cross(forward, right));
-
-            // Now — here's the matrix in Keen's axis layout:
-            MatrixD matrix = new MatrixD
-            {
-                M11 = right.X, M12 = right.Y, M13 = right.Z, M14 = 0,
-                M21 = up.X,    M22 = up.Y,    M23 = up.Z,    M24 = 0,
-                M31 = forward.X, M32 = forward.Y, M33 = forward.Z, M34 = 0,
-                M41 = fromPos.X, M42 = fromPos.Y, M43 = fromPos.Z, M44 = 1
-            };
-
-            return matrix;
-        }
-        
-        
-        
-        
-        private static void SetCameraViewMatrix(MatrixD viewMatrix, Matrix projectionMatrix, Matrix projectionFarMatrix, float fov, float fovSkybox, float nearPlane, float farPlane, float farFarPlane, Vector3D cameraPosition, float projectionOffsetX = 0f, float projectionOffsetY = 0f, int lastMomentUpdateIndex = 1, bool smooth = true)
-        {
+            MyCamera renderCamera = MySector.MainCamera;
             MyRenderMessageSetCameraViewMatrix renderMessage = MyRenderProxy.MessagePool.Get<MyRenderMessageSetCameraViewMatrix>(MyRenderMessageEnum.SetCameraViewMatrix);
             renderMessage.ViewMatrix = viewMatrix;
             renderMessage.ProjectionMatrix = projectionMatrix;
@@ -220,17 +197,14 @@ namespace DeltaWing.TargetCamera
             renderMessage.FOV = fov;
             renderMessage.FOVForSkybox = fovSkybox;
             renderMessage.NearPlane = nearPlane;
-            renderMessage.FarPlane = farPlane;
-            renderMessage.FarFarPlane = farFarPlane;
+            renderMessage.FarPlane = renderCamera.FarPlaneDistance;
+            renderMessage.FarFarPlane = renderCamera.FarFarPlaneDistance;
             renderMessage.CameraPosition = cameraPosition;
             renderMessage.LastMomentUpdateIndex = lastMomentUpdateIndex;
-            renderMessage.ProjectionOffsetX = projectionOffsetX;
-            renderMessage.ProjectionOffsetY = projectionOffsetY;
-            renderMessage.Smooth = smooth;
+            renderMessage.ProjectionOffsetX = 0;
+            renderMessage.ProjectionOffsetY = 0;
+            renderMessage.Smooth = false;
             MyRender11.SetupCameraMatrices(renderMessage);
         }
-        
-        
-        
     }
 }
