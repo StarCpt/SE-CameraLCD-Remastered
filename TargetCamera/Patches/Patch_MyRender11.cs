@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using DeltaWing.TargetCamera;
+using HarmonyLib;
 using VRageRenderAccessor.VRage.Render11.Resources;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
 
@@ -19,7 +20,7 @@ namespace CameraLCD.Patches
             RenderTarget = new MyRtvTexture(renderTarget);
             
             _drawingCameraLcds = true;
-            CameraLcdManager.Draw();
+            TargetCamera.Draw();
 
             RenderTarget = null;
             _drawingCameraLcds = false;
