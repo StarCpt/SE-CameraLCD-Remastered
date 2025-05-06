@@ -4,6 +4,7 @@ using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using System.Reflection;
+using Sandbox.Game.World;
 
 namespace CameraLCD.Patches
 {
@@ -33,7 +34,6 @@ namespace CameraLCD.Patches
                 MyGuiSandbox.AddScreen(myGuiScreenModConfig);
             }
         }
-
         private static void OnWindowClosed(MyGuiScreenBase source, bool isUnloading)
         {
             source.Closed -= OnWindowClosed;

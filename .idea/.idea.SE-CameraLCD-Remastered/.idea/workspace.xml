@@ -4,24 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a94f0827-9266-429d-9f14-ef0f1c67df3a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/TargetCamera/TargetCamera.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/TargetCamera/TargetCamera.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered.sln" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera.sln" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/CameraLCDSettings.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/CameraLCDSettings.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/CameraLcdManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/CameraLcdManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/CameraTSS.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/CameraTSS.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/DisplayId.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/DisplayId.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Gui/MyGuiScreenPluginConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Gui/MyGuiScreenPluginConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/MyCameraBlockAccessor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/MyCameraBlockAccessor.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Patches/Patch_LoadScripts.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Patches/Patch_LoadScripts.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Patches/Patch_MyCameraBlock.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Patches/Patch_MyCameraBlock.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Patches/Patch_MyRender11.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Patches/Patch_MyRender11.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Plugin.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Plugin.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/Properties/AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/TargetCamera/Properties/AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-CameraLCD-Remastered/SE-CameraLCD-Remastered.csproj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SE-VRageRenderAccessorLib/SE-VRageRenderAccessor.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/SE-VRageRenderAccessorLib/SE-VRageRenderAccessor.csproj" afterDir="false" />
-    </list>
+    <list default="true" id="a94f0827-9266-429d-9f14-ef0f1c67df3a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -82,7 +65,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1746453867943</updated>
-      <workItem from="1746453869017" duration="8516000" />
+      <workItem from="1746453869017" duration="8962000" />
     </task>
     <servers />
   </component>

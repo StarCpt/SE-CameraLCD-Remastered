@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using Microsoft.CodeAnalysis;
 using Sandbox.Game.Components;
@@ -25,6 +28,7 @@ using VRageRender.Messages;
 
 using CameraLCD;
 using CameraLCD.Patches;
+using CoreSystems.Api;
 using VRageRenderAccessor.VRage.Render11.Common;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
 using VRageRenderAccessor.VRageRender;
@@ -33,7 +37,7 @@ namespace DeltaWing.TargetCamera
 {
     public class TargetCamera
     {
-        public static Vector2I Size = new Vector2I(640, 360);
+        private const int MaxGraceFrames = 5;
         
         public static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
         public static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
@@ -42,13 +46,50 @@ namespace DeltaWing.TargetCamera
         public static MyEntity targetEntity;
         public static MyCockpit cockpit;
 
-        public static string textureName = "TargetCamera";
+        public static Vector3D targetPosition;
+        public static Vector3D myPosition;
         
+        public static string textureName = "TargetCamera";
+
+
+        private static WcApi _weaponcoreApi;
+        private static bool _usesWeaponcore = false;
+
+        public static void Load()
+        {
+            MyLog.Default.Log(MyLogSeverity.Info, "Target Camera binding MySession events");
+            MySession.AfterLoading += WorldLoad;
+            MySession.OnUnloading += WorldUnload;
+        }
+        private static void WorldLoad()
+        {
+            MyLog.Default.Log(MyLogSeverity.Info,"World loaded, attempting to load WC API...");
+            _weaponcoreApi = new WcApi();
+            _weaponcoreApi.Load(WCReadyCallback);
+        }
+
+        public static Action WCReadyCallback => WCCallback;
+        private static void WCCallback()
+        {
+            MyLog.Default.Log(MyLogSeverity.Info, "WC exists");
+            _usesWeaponcore = true;
+            
+        }
+
+        private static void WorldUnload()
+        {
+            MyLog.Default.Log(MyLogSeverity.Info,"World loaded, resetting WC API");
+            _usesWeaponcore = false;
+        }
+
+
         public static void Update()
         {
             // Step 1: Get the targeted entity and controlled grid
             
             var controlledEntity = PlayerController?.ControlledEntity;
+
+
             
             if (!(controlledEntity?.Entity is MyCockpit cockpit))
             {
@@ -58,49 +99,65 @@ namespace DeltaWing.TargetCamera
             }
 
             TargetCamera.cockpit = cockpit;
-            var targetData = cockpit.TargetData;
-            targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
+            
+            if (_usesWeaponcore)
+            {
+                targetEntity = _weaponcoreApi.GetAiFocus(cockpit.CubeGrid);
+                
+            }
+            else
+            {
+                var targetData = cockpit.TargetData;
+                targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
+            }
+
+            myPosition = cockpit.CubeGrid.PositionComp.WorldVolume.Center;
+            if (targetEntity != null) targetPosition = targetEntity.PositionComp.WorldVolume.Center;
         }
 
         // TODO: Credit Lurking StarCpt for doing most of the heavy lifting with the camera API
         public static void Draw()
         {
-            MyCamera renderCamera = MySector.MainCamera;
+            try
+            {
+MyCamera renderCamera = MySector.MainCamera;
 
             if (targetEntity == null || cockpit == null || renderCamera == null) return;
             var controlledGrid = cockpit.CubeGrid;
-            MyLog.Default.Log(MyLogSeverity.Info, cockpit.TargetData.TargetId.ToString());
             
             // MyEntities.TryGetEntityById(cockpit.TargetData.TargetId, out MyEntity targetEntity, true);
             
-            MyLog.Default.Log(MyLogSeverity.Info, "Got controlled grid");
-            MyLog.Default.Log(MyLogSeverity.Info, $"Controlled grid exists: {controlledGrid != null}");
-            MyLog.Default.Log(MyLogSeverity.Info, $"Target entity exists: {targetEntity != null}");
             // Step 2: Break early if it doesn't exist
             if (controlledGrid == null) return;
             
-            MyLog.Default.Log(MyLogSeverity.Info, "Got controlled grid and target entity");
             
             #region disble post-processing effects and lod changes
 
             bool ogLods = SetLoddingEnabled(false);
             bool ogDrawBillboards = MyRender11.Settings.DrawBillboards;
-            MyRender11.Settings.DrawBillboards = false;
+            MyRender11.Settings.DrawBillboards = true;
             MyRenderDebugOverrides debugOverrides = MyRender11.DebugOverrides;
             bool ogFlares = debugOverrides.Flares;
             bool ogSSAO = debugOverrides.SSAO;
             bool ogBloom = debugOverrides.Bloom;
-            debugOverrides.Flares = false;
+            debugOverrides.Flares = true;
             debugOverrides.SSAO = false;
             debugOverrides.Bloom = false;
 
             #endregion
             
             // Step 3: Get target camera details (near clip, fov, cockpit up)
-            float targetCameraFov = (float)GetFov(controlledGrid, targetEntity);
-            float targetCameraNearPlane = (float)controlledGrid.PositionComp.WorldVolume.Radius;
+            
+            float targetCameraNearPlane = 5; // Can probably get rid of this
             var targetCameraUp = cockpit.WorldMatrix.Up;
-            var targetCameraPos = controlledGrid.PositionComp.WorldVolume.Center;
+            var shipPos = myPosition;
+            var targetPos = targetPosition;
+            var to = targetPos - shipPos;
+            var dir = to.Normalized();
+            float targetCameraFov = (float)GetFov(shipPos, to, dir, targetEntity);
+            
+            
+            var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
 
             // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
 
@@ -109,6 +166,8 @@ namespace DeltaWing.TargetCamera
             // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
             Vector2I ogResolutionI = MyRender11.ResolutionI;
 
+            Vector2I Size = new Vector2I(Plugin.Settings.Width, Plugin.Settings.Height);
+            
             MyRender11.ViewportResolution = Size;
             MyRender11.ResolutionI = Size;
             SetCameraViewMatrix(targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, targetCameraFov, targetCameraFov, targetCameraNearPlane, targetCameraPos, 1);
@@ -123,17 +182,14 @@ namespace DeltaWing.TargetCamera
             MyRender11.DeviceInstance.ImmediateContext1.CopySubresourceRegion(
                 borrowedRtv.Resource, 0, null, 
                 Patch_MyRender11.RenderTarget.Resource, 0, 
-                ogResolutionI.X - Size.X, ogResolutionI.Y - Size.Y
+                Plugin.Settings.X, Plugin.Settings.Y
                 );
-
             borrowedRtv.Release();
-            MyLog.Default.Log(MyLogSeverity.Info, "Took an image snapshot");
 
             // Restore camera position
             MyRender11.ViewportResolution = ogResolutionI;
             MyRender11.ResolutionI = ogResolutionI;
             SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.Position, 0);
-            MyLog.Default.Log(MyLogSeverity.Info, "Reset camera");
 
             #region restore post-processing and lod settings
 
@@ -144,29 +200,59 @@ namespace DeltaWing.TargetCamera
             debugOverrides.Bloom = ogBloom;
 
             #endregion
+            }
+            catch (Exception ex)
+            {
+                MyLog.Default.Log(MyLogSeverity.Critical, ex.ToString());
+            }
+            
         }
 
-        public static double GetFov(MyCubeGrid controlledGrid, MyEntity targetEntity)
+        public static double GetFov(Vector3D from, Vector3D to, Vector3D dir, MyEntity targetEntity)
         {
-            // Get world positions of both grid and target
-            Vector3D from = controlledGrid.PositionComp.WorldVolume.Center;
-            Vector3D to = targetEntity.PositionComp.WorldVolume.Center;
+            // 1) Setup camera
 
-            // Get distance between them
-            double distance = Vector3D.Distance(from, to);
+            // 2) Pull the local AABB and its world matrix
+            var localAabb    = targetEntity.PositionComp.LocalAABB;  // in object space
+            MatrixD worldMat = targetEntity.WorldMatrix;
 
-            // Get radius of the target's bounding sphere
-            double radius = targetEntity.PositionComp.WorldVolume.Radius;
+            // 3) Prepare to track the maximum half‑angle
+            double maxTheta = 0.0;
 
-            // If distance is too close, avoid division by zero
-            if (distance <= 0)
-                return MathHelper.PiOver2; // 90 degrees in radians as a fallback
+            // 4) For each of the 8 local‑space corners...
+            for (int sx = 0; sx <= 1; sx++)
+            for (int sy = 0; sy <= 1; sy++)
+            for (int sz = 0; sz <= 1; sz++)
+            {
+                // pick min or max on each axis
+                Vector3D localCorner = new Vector3D(
+                    sx == 0 ? localAabb.Min.X : localAabb.Max.X,
+                    sy == 0 ? localAabb.Min.Y : localAabb.Max.Y,
+                    sz == 0 ? localAabb.Min.Z : localAabb.Max.Z
+                );
 
-            // Calculate angular FOV needed to contain the sphere (in radians)
-            double fov = 2 * Math.Atan(radius / distance);
+                // 5) transform into world space
+                Vector3D worldCorner = Vector3D.Transform(localCorner, worldMat);
 
-            return fov;
+                // 6) compute half‑angle to that corner
+                Vector3D v = worldCorner - from;
+                double dist = v.Length();
+                if (dist <= 1e-6) continue;
+
+                double cosTheta = Vector3D.Dot(v / dist, dir);
+                cosTheta = MathHelper.Clamp(cosTheta, -1.0, 1.0);
+                double theta = Math.Acos(cosTheta);
+
+                if (theta > maxTheta)
+                    maxTheta = theta;
+            }
+
+            // 7) full FOV
+            return 2.0 * maxTheta;
         }
+
+
+
         
         private static bool SetLoddingEnabled(bool enabled)
         {

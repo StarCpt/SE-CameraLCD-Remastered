@@ -1,4 +1,5 @@
-﻿using Sandbox;
+﻿using System;
+using Sandbox;
 using Sandbox.Graphics.GUI;
 using VRage;
 using VRage.Utils;
@@ -12,6 +13,7 @@ namespace CameraLCD.Gui
 
         private MyGuiControlCombobox ratioCombobox;
         private MyGuiControlLabel rangeLabel;
+        
 
         public MyGuiScreenPluginConfig() : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, new Vector2(0.6f, 0.4f), false, null, MySandboxGame.Config.UIBkOpacity, MySandboxGame.Config.UIOpacity)
         {
@@ -32,9 +34,9 @@ namespace CameraLCD.Gui
 
         public override void RecreateControls(bool constructor)
         {
-            CameraLCDSettings settings = Plugin.Settings;
+            TargetCameraSettings settings = Plugin.Settings;
 
-            MyGuiControlLabel caption = AddCaption("Camera LCD Settings");
+            MyGuiControlLabel caption = AddCaption("Target Camera Settings");
             Vector2 pos = caption.Position;
             pos.Y += (caption.Size.Y / 2) + space;
 
@@ -43,67 +45,48 @@ namespace CameraLCD.Gui
             sperators.AddHorizontal(pos - new Vector2(sepWidth / 2, 0), sepWidth);
             Controls.Add(sperators);
             pos.Y += space;
-
+            
+            // ENABLED
             MyGuiControlCheckbox enabledCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.Enabled, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
             enabledCheckbox.IsCheckedChanged += IsEnabledCheckedChanged;
             Controls.Add(enabledCheckbox);
             AddCaption(enabledCheckbox, "Enabled");
             pos.Y += enabledCheckbox.Size.Y + space;
-
-            ratioCombobox = new MyGuiControlCombobox(pos, toolTip: "Base camera update rate relative to main FPS.", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP)
-            {
-                VisualStyle = MyGuiControlComboboxStyleEnum.Debug,
-            };
-            ratioCombobox.AddItem(2, "2x");
-            ratioCombobox.AddItem(3, "3x");
-            ratioCombobox.AddItem(4, "4x");
-            ratioCombobox.AddItem(5, "5x");
-            ratioCombobox.AddItem(8, "8x");
-            ratioCombobox.AddItem(10, "10x");
-            ratioCombobox.AddItem(15, "15x");
-            ratioCombobox.AddItem(30, "30x");
-            ratioCombobox.SelectItemByKey(settings.Ratio);
-            ratioCombobox.ItemSelected += OnModeComboSelect;
-            Controls.Add(ratioCombobox);
-            AddCaption(ratioCombobox, "Render ratio");
-            pos.Y += ratioCombobox.Size.Y + space;
-
-            MyGuiControlSlider rangeSlider = new MyGuiControlSlider(pos, 10, 120, 0.18f, settings.Range, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, intValue: true);
-            rangeSlider.ValueChanged += RangeValueChanged;
-            Controls.Add(rangeSlider);
-            AddCaption(rangeSlider, "Render range");
-            rangeLabel = new MyGuiControlLabel(rangeSlider.Position + new Vector2(rangeSlider.Size.X + space, rangeSlider.Size.Y / 2), text: rangeSlider.Value.ToString(), originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER);
-            Controls.Add(rangeLabel);
-            pos.Y += rangeSlider.Size.Y + space;
-
-            //MyGuiControlCheckbox headFixCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.HeadFix, toolTip: "Fix to render your own head in camera view", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            //headFixCheckbox.IsCheckedChanged += IsHeadfixCheckedChanged;
-            //Controls.Add(headFixCheckbox);
-            //AddCaption(headFixCheckbox, "Head fix");
-            //pos.Y += headFixCheckbox.Size.Y + space;
-
-            //MyGuiControlCheckbox lodCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.UpdateLOD, toolTip: "LOD update between frames", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            //lodCheckbox.IsCheckedChanged += IsLODCheckedChanged;
-            //Controls.Add(lodCheckbox);
-            //AddCaption(lodCheckbox, "Update LOD");
-            //pos.Y += lodCheckbox.Size.Y + space;
-
-            //MyGuiControlCheckbox aspectCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.LockAspectRatio, toolTip: "Fix distortion by locking the aspect ratio", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            //aspectCheckbox.IsCheckedChanged += IsAspectCheckedChanged;
-            //Controls.Add(aspectCheckbox);
-            //AddCaption(aspectCheckbox, "Lock Aspect Ratio");
-            //pos.Y += aspectCheckbox.Size.Y + space;
-
+            
+            // X
+            MyGuiControlTextbox xBox = new MyGuiControlTextbox(pos, settings.X.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
+            xBox.TextChanged += XPositionBoxChanged;
+            Controls.Add(xBox);
+            AddCaption(xBox, "X Position");
+            pos.Y += xBox.Size.Y + space;
+            
+            // Y
+            MyGuiControlTextbox yBox = new MyGuiControlTextbox(pos, settings.Y.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
+            yBox.TextChanged += YPositionBoxChanged;
+            Controls.Add(yBox);
+            AddCaption(yBox, "Y Position");
+            pos.Y += yBox.Size.Y + space;
+            
+            // WIDTH
+            MyGuiControlTextbox wBox = new MyGuiControlTextbox(pos, settings.Width.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
+            wBox.TextChanged += WidthBoxChanged;
+            Controls.Add(wBox);
+            AddCaption(wBox, "Width");
+            pos.Y += wBox.Size.Y + space;
+            
+            // HEIGHT
+            MyGuiControlTextbox hBox = new MyGuiControlTextbox(pos, settings.Height.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
+            hBox.TextChanged += HeightBoxChanged;
+            Controls.Add(hBox);
+            AddCaption(hBox, "Height");
+            pos.Y += hBox.Size.Y + space;
+            
             // Bottom
             pos = new Vector2(0, (m_size.Value.Y / 2) - space);
             MyGuiControlButton closeButton = new MyGuiControlButton(pos, text: MyTexts.Get(MyCommonTexts.Close), originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM, onButtonClick: OnCloseClicked);
             Controls.Add(closeButton);
         }
-
-        private void IsAspectCheckedChanged(MyGuiControlCheckbox cb)
-        {
-            Plugin.Settings.LockAspectRatio = cb.IsChecked;
-        }
+        
 
         private void OnCloseClicked(MyGuiControlButton btn)
         {
@@ -120,31 +103,27 @@ namespace CameraLCD.Gui
             Controls.Add(new MyGuiControlLabel(control.Position + new Vector2(-space, control.Size.Y / 2), text: caption, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER));
         }
 
-        private void OnModeComboSelect()
-        {
-            Plugin.Settings.Ratio = (int)ratioCombobox.GetSelectedKey();
-        }
-
         void IsEnabledCheckedChanged(MyGuiControlCheckbox cb)
         {
             Plugin.Settings.Enabled = cb.IsChecked;
         }
 
-        void IsHeadfixCheckedChanged(MyGuiControlCheckbox cb)
+        void XPositionBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.HeadFix = cb.IsChecked;
+            Plugin.Settings.X = int.TryParse(tb.Text, out var result) ? result : 0;
         }
-
-        void IsLODCheckedChanged(MyGuiControlCheckbox cb)
+        void YPositionBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.UpdateLOD = cb.IsChecked;
+            Plugin.Settings.Y = int.TryParse(tb.Text, out var result) ? result : 0;
         }
-
-        void RangeValueChanged(MyGuiControlSlider cb)
+        
+        void WidthBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Range = (int)cb.Value;
-            rangeLabel.Text = cb.Value.ToString();
+            Plugin.Settings.Width = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
         }
-
+        void HeightBoxChanged(MyGuiControlTextbox tb)
+        {
+            Plugin.Settings.Height = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
+        }
     }
 }
