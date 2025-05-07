@@ -38,20 +38,21 @@ namespace DeltaWing.TargetCamera
     public class TargetCamera
     {
         
+
         public static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
         public static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
         public static IMyEntityController PlayerController => LocalPlayer?.Controller;
 
         public static MyEntity targetEntity;
-        public static MyCockpit cockpit;
+        public static MyShipController cockpit;
         
         public static string textureName = "TargetCamera";
 
         
         
         private static WcApi _weaponcoreApi;
-        private static bool _usesWeaponcore = false;
-
+        private static bool _usesWeaponcore;
+        private static bool _wasJustInCockpit;
         public static void ModLoad()
         {
             MyLog.Default.Log(MyLogSeverity.Info, "Target Camera binding MySession events");
@@ -86,10 +87,11 @@ namespace DeltaWing.TargetCamera
 
 
             
-            if (!(controlledEntity?.Entity is MyCockpit cockpit))
+            if (!(controlledEntity?.Entity is MyShipController cockpit))
             {
                 TargetCamera.cockpit = null;
                 targetEntity = null;
+                _wasJustInCockpit = false;
                 return;
             }
 
@@ -100,6 +102,14 @@ namespace DeltaWing.TargetCamera
                 targetEntity = _weaponcoreApi.GetAiFocus(cockpit.CubeGrid);
                 
             }
+            else if (!_wasJustInCockpit)
+            {
+                var targetData = cockpit.TargetData;
+                targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
+                _wasJustInCockpit = true;
+            }
+
+            
         }
 
         // TODO: Credit Lurking StarCpt for doing most of the heavy lifting with the camera API
