@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using DeltaWing.TargetCamera;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Collections;

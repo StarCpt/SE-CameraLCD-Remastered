@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using Sandbox.Game.Entities;
 
-namespace CameraLCD
+namespace SETargetCamera
 {
     public static class MyCameraBlockAccessor
     {

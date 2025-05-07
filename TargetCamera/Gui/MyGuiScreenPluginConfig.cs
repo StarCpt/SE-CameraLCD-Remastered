@@ -5,7 +5,7 @@ using VRage;
 using VRage.Utils;
 using VRageMath;
 
-namespace CameraLCD.Gui
+namespace SETargetCamera.Gui
 {
     public class MyGuiScreenPluginConfig : MyGuiScreenBase
     {

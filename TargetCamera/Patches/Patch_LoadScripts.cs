@@ -1,12 +1,12 @@
-﻿using CameraLCD.Gui;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using System.Reflection;
 using Sandbox.Game.World;
+using SETargetCamera.Gui;
 
-namespace CameraLCD.Patches
+namespace SETargetCamera.Patches
 {
     [HarmonyPatch(typeof(MyTextSurfaceScriptFactory), nameof(MyTextSurfaceScriptFactory.LoadScripts))]
     public static class Patch_LoadScripts

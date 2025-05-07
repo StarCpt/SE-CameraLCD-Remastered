@@ -3,7 +3,7 @@ using System.Xml;
 using System.Xml.Serialization;
 using VRage.FileSystem;
 
-namespace CameraLCD
+namespace SETargetCamera
 {
     public class TargetCameraSettings
     {

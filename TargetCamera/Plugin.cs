@@ -1,12 +1,11 @@
-﻿using CameraLCD.Gui;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Sandbox.Graphics.GUI;
 using System;
 using System.Reflection;
-using DeltaWing.TargetCamera;
+using SETargetCamera.Gui;
 using VRage.Plugins;
 
-namespace CameraLCD
+namespace SETargetCamera
 {
     public class Plugin : IPlugin
     {
@@ -19,7 +18,7 @@ namespace CameraLCD
 
         public void Init(object gameInstance)
         {
-            new Harmony(nameof(CameraLCD)).PatchAll(Assembly.GetExecutingAssembly());
+            new Harmony(nameof(SETargetCamera)).PatchAll(Assembly.GetExecutingAssembly());
             TargetCamera.ModLoad();
         }
 

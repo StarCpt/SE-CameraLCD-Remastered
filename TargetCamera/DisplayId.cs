@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CameraLCD
+namespace SETargetCamera
 {
     public struct DisplayId : IEquatable<DisplayId>
     {

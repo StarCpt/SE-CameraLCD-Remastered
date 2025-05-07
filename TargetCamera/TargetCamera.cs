@@ -26,32 +26,29 @@ using VRageRender;
 using VRageRender.Import;
 using VRageRender.Messages;
 
-using CameraLCD;
-using CameraLCD.Patches;
+using SETargetCamera;
+using SETargetCamera.Patches;
 using CoreSystems.Api;
 using VRageRenderAccessor.VRage.Render11.Common;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
 using VRageRenderAccessor.VRageRender;
 
-namespace DeltaWing.TargetCamera
+namespace SETargetCamera
 {
     public class TargetCamera
     {
-        
+        private static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
+        private static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
+        private static IMyEntityController PlayerController => LocalPlayer?.Controller;
 
-        public static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
-        public static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
-        public static IMyEntityController PlayerController => LocalPlayer?.Controller;
+        private static MyEntity _targetEntity;
+        private static MyShipController _cockpit;
 
-        public static MyEntity targetEntity;
-        public static MyShipController cockpit;
-        
-        public static string textureName = "TargetCamera";
+        private const string TextureName = "TargetCamera";
 
-        
-        
-        private static WcApi _weaponcoreApi;
-        private static bool _usesWeaponcore;
+
+        private static WcApi _wcApi;
+        private static bool _usesWc;
         private static bool _wasJustInCockpit;
         public static void ModLoad()
         {
@@ -60,22 +57,22 @@ namespace DeltaWing.TargetCamera
         public static void WorldLoad()
         {
             MyLog.Default.Log(MyLogSeverity.Info,"World loaded, attempting to load WC API...");
-            _weaponcoreApi = new WcApi();
-            _weaponcoreApi.Load(WCReadyCallback);
+            _wcApi = new WcApi();
+            _wcApi.Load(WCReadyCallback);
         }
 
-        public static Action WCReadyCallback => WCCallback;
-        private static void WCCallback()
+        public static Action WCReadyCallback => WcCallback;
+        private static void WcCallback()
         {
             MyLog.Default.Log(MyLogSeverity.Info, "WC exists");
-            _usesWeaponcore = true;
+            _usesWc = true;
             
         }
 
         public static void WorldUnload()
         {
             MyLog.Default.Log(MyLogSeverity.Info,"World unloaded, resetting WC API");
-            _usesWeaponcore = false;
+            _usesWc = false;
         }
 
 
@@ -89,23 +86,23 @@ namespace DeltaWing.TargetCamera
             
             if (!(controlledEntity?.Entity is MyShipController cockpit))
             {
-                TargetCamera.cockpit = null;
-                targetEntity = null;
+                TargetCamera._cockpit = null;
+                _targetEntity = null;
                 _wasJustInCockpit = false;
                 return;
             }
 
-            TargetCamera.cockpit = cockpit;
+            TargetCamera._cockpit = cockpit;
             
-            if (_usesWeaponcore)
+            if (_usesWc)
             {
-                targetEntity = _weaponcoreApi.GetAiFocus(cockpit.CubeGrid);
+                _targetEntity = _wcApi.GetAiFocus(cockpit.CubeGrid);
                 
             }
             else if (!_wasJustInCockpit)
             {
                 var targetData = cockpit.TargetData;
-                targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
+                _targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
                 _wasJustInCockpit = true;
             }
 
@@ -117,88 +114,88 @@ namespace DeltaWing.TargetCamera
         {
             try
             {
-MyCamera renderCamera = MySector.MainCamera;
+                MyCamera renderCamera = MySector.MainCamera;
 
-            if (targetEntity == null || cockpit == null || renderCamera == null) return;
-            var controlledGrid = cockpit.CubeGrid;
-            
-            // MyEntities.TryGetEntityById(cockpit.TargetData.TargetId, out MyEntity targetEntity, true);
-            
-            // Step 2: Break early if it doesn't exist
-            if (controlledGrid == null) return;
-            
-            
-            #region disble post-processing effects and lod changes
+                if (_targetEntity == null || _cockpit == null || renderCamera == null) return;
+                var controlledGrid = _cockpit.CubeGrid;
+                
+                // MyEntities.TryGetEntityById(cockpit.TargetData.TargetId, out MyEntity targetEntity, true);
+                
+                // Step 2: Break early if it doesn't exist
+                if (controlledGrid == null) return;
+                
+                
+                #region disble post-processing effects and lod changes
 
-            bool ogLods = SetLoddingEnabled(false);
-            bool ogDrawBillboards = MyRender11.Settings.DrawBillboards;
-            MyRender11.Settings.DrawBillboards = true;
-            MyRenderDebugOverrides debugOverrides = MyRender11.DebugOverrides;
-            bool ogFlares = debugOverrides.Flares;
-            bool ogSSAO = debugOverrides.SSAO;
-            bool ogBloom = debugOverrides.Bloom;
-            debugOverrides.Flares = true;
-            debugOverrides.SSAO = false;
-            debugOverrides.Bloom = false;
+                bool ogLods = SetLoddingEnabled(false);
+                bool ogDrawBillboards = MyRender11.Settings.DrawBillboards;
+                MyRender11.Settings.DrawBillboards = true;
+                MyRenderDebugOverrides debugOverrides = MyRender11.DebugOverrides;
+                bool ogFlares = debugOverrides.Flares;
+                bool ogSSAO = debugOverrides.SSAO;
+                bool ogBloom = debugOverrides.Bloom;
+                debugOverrides.Flares = true;
+                debugOverrides.SSAO = false;
+                debugOverrides.Bloom = false;
 
-            #endregion
-            
-            // Step 3: Get target camera details (near clip, fov, cockpit up)
-            
-            float targetCameraNearPlane = 5; // Can probably get rid of this
-            var targetCameraUp = cockpit.WorldMatrix.Up;
-            var shipPos = cockpit.CubeGrid.PositionComp.WorldVolume.Center;
-            var targetPos = targetEntity.PositionComp.WorldVolume.Center;
-            var to = targetPos - shipPos;
-            var dist = to.Length();
-            if (dist < Plugin.Settings.MinRange) return;
-            var dir = to / dist;
-            float targetCameraFov = (float)GetFov(shipPos, to, dir, dist, targetEntity);
-            
-            
-            var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
+                #endregion
+                
+                // Step 3: Get target camera details (near clip, fov, cockpit up)
+                
+                float targetCameraNearPlane = 5; // Can probably get rid of this
+                var targetCameraUp = _cockpit.WorldMatrix.Up;
+                var shipPos = _cockpit.CubeGrid.PositionComp.WorldVolume.Center;
+                var targetPos = _targetEntity.PositionComp.WorldVolume.Center;
+                var to = targetPos - shipPos;
+                var dist = to.Length();
+                if (dist < Plugin.Settings.MinRange) return;
+                var dir = to / dist;
+                float targetCameraFov = (float)GetFov(shipPos, to, dir, dist, _targetEntity);
+                
+                
+                var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
 
-            // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
+                // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
 
-            var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, targetPos, targetCameraUp);
+                var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, targetPos, targetCameraUp);
 
-            // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
-            Vector2I ogResolutionI = MyRender11.ResolutionI;
+                // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
+                Vector2I ogResolutionI = MyRender11.ResolutionI;
 
-            Vector2I Size = new Vector2I(Plugin.Settings.Width, Plugin.Settings.Height);
-            
-            MyRender11.ViewportResolution = Size;
-            MyRender11.ResolutionI = Size;
-            SetCameraViewMatrix(targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, targetCameraFov, targetCameraFov, targetCameraNearPlane, targetCameraPos, 1);
+                Vector2I Size = new Vector2I(Plugin.Settings.Width, Plugin.Settings.Height);
+                
+                MyRender11.ViewportResolution = Size;
+                MyRender11.ResolutionI = Size;
+                SetCameraViewMatrix(targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, targetCameraFov, targetCameraFov, targetCameraNearPlane, targetCameraPos, 1);
 
-            // Draw the game to the screen
-            var backbufferFormat = Patch_MyRender11.RenderTarget.Rtv.Description.Format;
-            var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv(textureName, Size.X, Size.Y, backbufferFormat);
-            
-            MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
-            debugAmbientOcclusion.Release();
+                // Draw the game to the screen
+                var backbufferFormat = Patch_MyRender11.RenderTarget.Rtv.Description.Format;
+                var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv(TextureName, Size.X, Size.Y, backbufferFormat);
+                
+                MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
+                debugAmbientOcclusion.Release();
 
-            MyRender11.DeviceInstance.ImmediateContext1.CopySubresourceRegion(
-                borrowedRtv.Resource, 0, null, 
-                Patch_MyRender11.RenderTarget.Resource, 0, 
-                Plugin.Settings.X, Plugin.Settings.Y
-                );
-            borrowedRtv.Release();
+                MyRender11.DeviceInstance.ImmediateContext1.CopySubresourceRegion(
+                    borrowedRtv.Resource, 0, null, 
+                    Patch_MyRender11.RenderTarget.Resource, 0, 
+                    Plugin.Settings.X, Plugin.Settings.Y
+                    );
+                borrowedRtv.Release();
 
-            // Restore camera position
-            MyRender11.ViewportResolution = ogResolutionI;
-            MyRender11.ResolutionI = ogResolutionI;
-            SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.Position, 0);
+                // Restore camera position
+                MyRender11.ViewportResolution = ogResolutionI;
+                MyRender11.ResolutionI = ogResolutionI;
+                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.Position, 0);
 
-            #region restore post-processing and lod settings
+                #region restore post-processing and lod settings
 
-            SetLoddingEnabled(ogLods);
-            MyRender11.Settings.DrawBillboards = ogDrawBillboards;
-            debugOverrides.Flares = ogFlares;
-            debugOverrides.SSAO = ogSSAO;
-            debugOverrides.Bloom = ogBloom;
+                SetLoddingEnabled(ogLods);
+                MyRender11.Settings.DrawBillboards = ogDrawBillboards;
+                debugOverrides.Flares = ogFlares;
+                debugOverrides.SSAO = ogSSAO;
+                debugOverrides.Bloom = ogBloom;
 
-            #endregion
+                #endregion
             }
             catch (Exception ex)
             {
@@ -293,9 +290,9 @@ MyCamera renderCamera = MySector.MainCamera;
 
         public static void SetTarget(IMyTargetingCapableBlock controlledBlock, MyEntity target)
         {
-            if (controlledBlock == cockpit)
+            if (controlledBlock == _cockpit)
             {
-                targetEntity = target;
+                _targetEntity = target;
             }
         }
     }

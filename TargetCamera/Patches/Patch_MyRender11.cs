@@ -1,9 +1,9 @@
-﻿using DeltaWing.TargetCamera;
+﻿
 using HarmonyLib;
 using VRageRenderAccessor.VRage.Render11.Resources;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
 
-namespace CameraLCD.Patches
+namespace SETargetCamera.Patches
 {
     [HarmonyPatch]
     public static class Patch_MyRender11

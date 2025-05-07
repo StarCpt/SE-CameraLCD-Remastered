@@ -1,10 +1,10 @@
-using DeltaWing.TargetCamera;
+
 using HarmonyLib;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using VRage.Game.Entity;
 
-namespace CameraLCD.Patches
+namespace SETargetCamera.Patches
 {
     
     [HarmonyPatch(typeof(MyTargetLockingComponent), "OnLockedTargetChanged")]
