@@ -37,7 +37,6 @@ namespace DeltaWing.TargetCamera
 {
     public class TargetCamera
     {
-        private const int MaxGraceFrames = 5;
         
         public static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
         public static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
@@ -45,23 +44,19 @@ namespace DeltaWing.TargetCamera
 
         public static MyEntity targetEntity;
         public static MyCockpit cockpit;
-
-        public static Vector3D targetPosition;
-        public static Vector3D myPosition;
         
         public static string textureName = "TargetCamera";
 
-
+        
+        
         private static WcApi _weaponcoreApi;
         private static bool _usesWeaponcore = false;
 
-        public static void Load()
+        public static void ModLoad()
         {
             MyLog.Default.Log(MyLogSeverity.Info, "Target Camera binding MySession events");
-            MySession.AfterLoading += WorldLoad;
-            MySession.OnUnloading += WorldUnload;
         }
-        private static void WorldLoad()
+        public static void WorldLoad()
         {
             MyLog.Default.Log(MyLogSeverity.Info,"World loaded, attempting to load WC API...");
             _weaponcoreApi = new WcApi();
@@ -76,9 +71,9 @@ namespace DeltaWing.TargetCamera
             
         }
 
-        private static void WorldUnload()
+        public static void WorldUnload()
         {
-            MyLog.Default.Log(MyLogSeverity.Info,"World loaded, resetting WC API");
+            MyLog.Default.Log(MyLogSeverity.Info,"World unloaded, resetting WC API");
             _usesWeaponcore = false;
         }
 
@@ -111,8 +106,7 @@ namespace DeltaWing.TargetCamera
                 targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
             }
 
-            myPosition = cockpit.CubeGrid.PositionComp.WorldVolume.Center;
-            if (targetEntity != null) targetPosition = targetEntity.PositionComp.WorldVolume.Center;
+            
         }
 
         // TODO: Credit Lurking StarCpt for doing most of the heavy lifting with the camera API
@@ -150,8 +144,8 @@ MyCamera renderCamera = MySector.MainCamera;
             
             float targetCameraNearPlane = 5; // Can probably get rid of this
             var targetCameraUp = cockpit.WorldMatrix.Up;
-            var shipPos = myPosition;
-            var targetPos = targetPosition;
+            var shipPos = cockpit.CubeGrid.PositionComp.WorldVolume.Center;
+            var targetPos = targetEntity.PositionComp.WorldVolume.Center;
             var to = targetPos - shipPos;
             var dir = to.Normalized();
             float targetCameraFov = (float)GetFov(shipPos, to, dir, targetEntity);
@@ -161,7 +155,7 @@ MyCamera renderCamera = MySector.MainCamera;
 
             // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
 
-            var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, targetEntity.PositionComp.WorldVolume.Center, targetCameraUp);
+            var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, targetPos, targetCameraUp);
 
             // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
             Vector2I ogResolutionI = MyRender11.ResolutionI;

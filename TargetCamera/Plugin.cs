@@ -20,12 +20,12 @@ namespace CameraLCD
         public void Init(object gameInstance)
         {
             new Harmony(nameof(CameraLCD)).PatchAll(Assembly.GetExecutingAssembly());
-            TargetCamera.Load();
+            TargetCamera.ModLoad();
         }
 
         public void Update()
         {
-            TargetCamera.Update();
+            //TargetCamera.Update();
             
         }
 
