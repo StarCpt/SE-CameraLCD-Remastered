@@ -21,7 +21,7 @@ namespace SETargetCamera
         public int Width { get; set; } = 500;
         public int Height { get; set; } = 500;
 
-        public float MinRange { get; set; } = 500;
+        public float MinRange { get; set; } = 100;
 
         public static TargetCameraSettings Load()
         {
