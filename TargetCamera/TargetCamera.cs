@@ -150,8 +150,10 @@ MyCamera renderCamera = MySector.MainCamera;
             var shipPos = cockpit.CubeGrid.PositionComp.WorldVolume.Center;
             var targetPos = targetEntity.PositionComp.WorldVolume.Center;
             var to = targetPos - shipPos;
-            var dir = to.Normalized();
-            float targetCameraFov = (float)GetFov(shipPos, to, dir, targetEntity);
+            var dist = to.Length();
+            if (dist < Plugin.Settings.MinRange) return;
+            var dir = to / dist;
+            float targetCameraFov = (float)GetFov(shipPos, to, dir, dist, targetEntity);
             
             
             var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
@@ -205,7 +207,7 @@ MyCamera renderCamera = MySector.MainCamera;
             
         }
 
-        public static double GetFov(Vector3D from, Vector3D to, Vector3D dir, MyEntity targetEntity)
+        public static double GetFov(Vector3D from, Vector3D to, Vector3D dir, double dist, MyEntity targetEntity)
         {
             // 1) Setup camera
 
@@ -233,7 +235,6 @@ MyCamera renderCamera = MySector.MainCamera;
 
                 // 6) compute half‑angle to that corner
                 Vector3D v = worldCorner - from;
-                double dist = v.Length();
                 if (dist <= 1e-6) continue;
 
                 double cosTheta = Vector3D.Dot(v / dist, dir);

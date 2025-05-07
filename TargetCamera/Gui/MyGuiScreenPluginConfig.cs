@@ -81,12 +81,21 @@ namespace CameraLCD.Gui
             AddCaption(hBox, "Height");
             pos.Y += hBox.Size.Y + space;
             
+            // MIN RANGE
+            MyGuiControlTextbox rangeBox = new MyGuiControlTextbox(pos, settings.MinRange.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 0);
+            rangeBox.TextChanged += RangeBoxChanged;
+            Controls.Add(rangeBox);
+            AddCaption(rangeBox, "Range");
+            pos.Y += wBox.Size.Y + space;
+            
             // Bottom
             pos = new Vector2(0, (m_size.Value.Y / 2) - space);
             MyGuiControlButton closeButton = new MyGuiControlButton(pos, text: MyTexts.Get(MyCommonTexts.Close), originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM, onButtonClick: OnCloseClicked);
             Controls.Add(closeButton);
         }
-        
+
+
+
 
         private void OnCloseClicked(MyGuiControlButton btn)
         {
@@ -124,6 +133,11 @@ namespace CameraLCD.Gui
         void HeightBoxChanged(MyGuiControlTextbox tb)
         {
             Plugin.Settings.Height = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
+        }
+        
+        private void RangeBoxChanged(MyGuiControlTextbox tb)
+        {
+            Plugin.Settings.MinRange = Math.Max(int.TryParse(tb.Text, out var result) ? result : 0, 0);
         }
     }
 }

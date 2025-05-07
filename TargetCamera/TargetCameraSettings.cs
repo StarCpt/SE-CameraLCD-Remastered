@@ -21,6 +21,8 @@ namespace CameraLCD
         public int Width { get; set; } = 500;
         public int Height { get; set; } = 500;
 
+        public float MinRange { get; set; } = 500;
+
         public static TargetCameraSettings Load()
         {
             string file = FilePath;
