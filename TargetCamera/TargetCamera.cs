@@ -150,7 +150,7 @@ namespace SETargetCamera
                 var dist = to.Length();
                 if (dist < Plugin.Settings.MinRange) return;
                 var dir = to / dist;
-                float targetCameraFov = (float)GetFov(shipPos, to, dir, dist, _targetEntity);
+                float targetCameraFov = (float)GetFov(shipPos, to, dir, _targetEntity);
                 
                 
                 var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
@@ -204,7 +204,7 @@ namespace SETargetCamera
             
         }
 
-        public static double GetFov(Vector3D from, Vector3D to, Vector3D dir, double dist, MyEntity targetEntity)
+        public static double GetFov(Vector3D from, Vector3D to, Vector3D dir, MyEntity targetEntity)
         {
             // 1) Setup camera
 
@@ -232,6 +232,7 @@ namespace SETargetCamera
 
                 // 6) compute half‑angle to that corner
                 Vector3D v = worldCorner - from;
+                var dist = v.Length();
                 if (dist <= 1e-6) continue;
 
                 double cosTheta = Vector3D.Dot(v / dist, dir);
