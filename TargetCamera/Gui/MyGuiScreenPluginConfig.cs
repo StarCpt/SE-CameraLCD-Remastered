@@ -57,35 +57,35 @@ namespace SETargetCamera.Gui
             MyGuiControlTextbox xBox = new MyGuiControlTextbox(pos, settings.X.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
             xBox.TextChanged += XPositionBoxChanged;
             Controls.Add(xBox);
-            AddCaption(xBox, "X Position");
+            AddCaption(xBox, "X Position", true);
             pos.Y += xBox.Size.Y + space;
             
             // Y
             MyGuiControlTextbox yBox = new MyGuiControlTextbox(pos, settings.Y.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
             yBox.TextChanged += YPositionBoxChanged;
             Controls.Add(yBox);
-            AddCaption(yBox, "Y Position");
+            AddCaption(yBox, "Y Position", true);
             pos.Y += yBox.Size.Y + space;
             
             // WIDTH
             MyGuiControlTextbox wBox = new MyGuiControlTextbox(pos, settings.Width.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
             wBox.TextChanged += WidthBoxChanged;
             Controls.Add(wBox);
-            AddCaption(wBox, "Width");
+            AddCaption(wBox, "Width", true);
             pos.Y += wBox.Size.Y + space;
             
             // HEIGHT
             MyGuiControlTextbox hBox = new MyGuiControlTextbox(pos, settings.Height.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
             hBox.TextChanged += HeightBoxChanged;
             Controls.Add(hBox);
-            AddCaption(hBox, "Height");
+            AddCaption(hBox, "Height", true);
             pos.Y += hBox.Size.Y + space;
             
             // MIN RANGE
-            MyGuiControlTextbox rangeBox = new MyGuiControlTextbox(pos, settings.MinRange.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 0);
+            MyGuiControlTextbox rangeBox = new MyGuiControlTextbox(pos, settings.MinRange.ToString(), type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 0);
             rangeBox.TextChanged += RangeBoxChanged;
             Controls.Add(rangeBox);
-            AddCaption(rangeBox, "Range");
+            AddCaption(rangeBox, "Minimum Range", true);
             pos.Y += wBox.Size.Y + space;
             
             // Bottom
@@ -107,9 +107,9 @@ namespace SETargetCamera.Gui
             Plugin.Settings.Save();
         }
 
-        private void AddCaption(MyGuiControlBase control, string caption)
+        private void AddCaption(MyGuiControlBase control, string caption, bool offsetWidth = false)
         {
-            Controls.Add(new MyGuiControlLabel(control.Position + new Vector2(-space, control.Size.Y / 2), text: caption, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER));
+            Controls.Add(new MyGuiControlLabel(control.Position + new Vector2(-space - (offsetWidth ? control.Size.X / 2 : 0), control.Size.Y / 2), text: caption, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER));
         }
 
         void IsEnabledCheckedChanged(MyGuiControlCheckbox cb)
