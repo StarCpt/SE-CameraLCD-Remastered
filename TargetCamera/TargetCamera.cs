@@ -100,13 +100,6 @@ namespace DeltaWing.TargetCamera
                 targetEntity = _weaponcoreApi.GetAiFocus(cockpit.CubeGrid);
                 
             }
-            else
-            {
-                var targetData = cockpit.TargetData;
-                targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
-            }
-
-            
         }
 
         // TODO: Credit Lurking StarCpt for doing most of the heavy lifting with the camera API
@@ -285,6 +278,14 @@ MyCamera renderCamera = MySector.MainCamera;
             renderMessage.ProjectionOffsetY = 0;
             renderMessage.Smooth = false;
             MyRender11.SetupCameraMatrices(renderMessage);
+        }
+
+        public static void SetTarget(IMyTargetingCapableBlock controlledBlock, MyEntity target)
+        {
+            if (controlledBlock == cockpit)
+            {
+                targetEntity = target;
+            }
         }
     }
 }
