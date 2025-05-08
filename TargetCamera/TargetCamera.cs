@@ -291,6 +291,7 @@ namespace SETargetCamera
 
         public static void SetTarget(IMyTargetingCapableBlock controlledBlock, MyEntity target)
         {
+            if (_usesWc) return;
             if (controlledBlock == _cockpit)
             {
                 _targetEntity = target;
