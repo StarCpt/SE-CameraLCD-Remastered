@@ -157,6 +157,13 @@ namespace SETargetCamera
         public static void Draw()
         {
             if (!Plugin.Settings.Enabled) return;
+            bool? ogLods = null;
+            bool? ogDrawBillboards = null;
+            bool? ogFlares = null;
+            bool? ogSSAO = null;
+            bool? ogBloom = null;
+            Vector2I? ogResolutionI = null;
+            MyRenderDebugOverrides debugOverrides = null;
             try
             {
                 var simSpeed = MySandboxGame.SimulationRatio;
@@ -183,13 +190,13 @@ namespace SETargetCamera
                 
                 #region disble post-processing effects and lod changes
 
-                bool ogLods = SetLoddingEnabled(false);
-                bool ogDrawBillboards = MyRender11.Settings.DrawBillboards;
+                ogLods = SetLoddingEnabled(false);
+                ogDrawBillboards = MyRender11.Settings.DrawBillboards;
                 MyRender11.Settings.DrawBillboards = true;
-                MyRenderDebugOverrides debugOverrides = MyRender11.DebugOverrides;
-                bool ogFlares = debugOverrides.Flares;
-                bool ogSSAO = debugOverrides.SSAO;
-                bool ogBloom = debugOverrides.Bloom;
+                debugOverrides = MyRender11.DebugOverrides;
+                ogFlares = debugOverrides.Flares;
+                ogSSAO = debugOverrides.SSAO;
+                ogBloom = debugOverrides.Bloom;
                 debugOverrides.Flares = true;
                 debugOverrides.SSAO = false;
                 debugOverrides.Bloom = false;
@@ -215,7 +222,7 @@ namespace SETargetCamera
                 var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, _targetPos, targetCameraUp);
 
                 // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
-                Vector2I ogResolutionI = MyRender11.ResolutionI;
+                ogResolutionI = MyRender11.ResolutionI;
 
                 Vector2I Size = new Vector2I(Plugin.Settings.Width, Plugin.Settings.Height);
                 
@@ -244,20 +251,38 @@ namespace SETargetCamera
                 MyRender11.ViewportResolution = ogResolutionI;
                 MyRender11.ResolutionI = ogResolutionI;
                 SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.Position, 0);
+                MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
+                MyRender11.ResolutionI = (Vector2I)ogResolutionI;
+                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.Position, 0);
 
                 #region restore post-processing and lod settings
 
-                SetLoddingEnabled(ogLods);
-                MyRender11.Settings.DrawBillboards = ogDrawBillboards;
-                debugOverrides.Flares = ogFlares;
-                debugOverrides.SSAO = ogSSAO;
-                debugOverrides.Bloom = ogBloom;
+                SetLoddingEnabled((bool)ogLods);
+                MyRender11.Settings.DrawBillboards = (bool)ogDrawBillboards;
+                debugOverrides.Flares = (bool)ogFlares;
+                debugOverrides.SSAO = (bool)ogSSAO;
+                debugOverrides.Bloom = (bool)ogBloom;
 
                 #endregion
             }
             catch (Exception ex)
             {
                 MyLog.Default.Log(MyLogSeverity.Critical, ex.ToString());
+
+                if (debugOverrides != null)
+                {
+                    if (ogLods != null) SetLoddingEnabled((bool)ogLods);
+                    if (ogDrawBillboards != null) MyRender11.Settings.DrawBillboards = (bool)ogDrawBillboards;
+                    if (ogFlares != null) debugOverrides.Flares = (bool)ogFlares;
+                    if (ogSSAO != null) debugOverrides.SSAO = (bool)ogSSAO;
+                    if (ogBloom != null) debugOverrides.Bloom = (bool)ogBloom;
+                    if (ogResolutionI != null)
+                    {
+                        MyRender11.ResolutionI = (Vector2I)ogResolutionI;
+                        MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
+                    }
+                }
+               
             }
             
         }
