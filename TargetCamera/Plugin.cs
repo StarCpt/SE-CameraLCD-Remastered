@@ -26,8 +26,6 @@ namespace SETargetCamera
 
         public void Update()
         {
-            //TargetCamera.Update();
-            float[] thing = [];
             
         }
 

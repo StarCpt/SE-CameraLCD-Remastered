@@ -29,8 +29,8 @@ using VRageRender.Messages;
 using SETargetCamera;
 using SETargetCamera.Patches;
 using CoreSystems.Api;
-using NuGet.Configuration;
 using Sandbox;
+using VRage.Render.Scene;
 using VRageRenderAccessor.VRage.Render11.Common;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
 using VRageRenderAccessor.VRageRender;
@@ -126,16 +126,8 @@ namespace SETargetCamera
             if (_targetEntity == null)
             {
                 _previousTargetPos = _shipPos;
-                _targetPos = _shipPos;
                 return;
             }
-            
-            _previousTargetPos = _targetPos;
-            _shipPos = _cockpit.CubeGrid.PositionComp.WorldVolume.Center;
-            _targetPos = _targetEntity.PositionComp.WorldVolume.Center;
-
-            var lerpSpeed = 1 / Plugin.Settings.CameraSmoothing;
-            _targetPos = Vector3D.Lerp(_previousTargetPos, _targetPos, lerpSpeed);
             
             // Creating the border
 
@@ -156,6 +148,9 @@ namespace SETargetCamera
         
         public static void Draw()
         {
+            
+            
+            
             if (!Plugin.Settings.Enabled) return;
             bool? ogLods = null;
             bool? ogDrawBillboards = null;
@@ -166,6 +161,8 @@ namespace SETargetCamera
             MyRenderDebugOverrides debugOverrides = null;
             try
             {
+                MyRender11.Settings.SkipGlobalROWMUpdate = true;
+                
                 var simSpeed = MySandboxGame.SimulationRatio;
                 var simTimeMs = DisplayFrameTimer.TimeSinceUpdateMs;
                 var maxSimTime = simSpeed * 16.6666666666;
@@ -187,7 +184,6 @@ namespace SETargetCamera
                 // Step 2: Break early if it doesn't exist
                 if (controlledGrid == null) return;
                 
-                
                 #region disble post-processing effects and lod changes
 
                 ogLods = SetLoddingEnabled(false);
@@ -207,6 +203,13 @@ namespace SETargetCamera
                 
                 float targetCameraNearPlane = 5; // Can probably get rid of this
                 var targetCameraUp = _cockpit.WorldMatrix.Up;
+                
+                _previousTargetPos = _targetPos;
+                _shipPos = GetRenderWorldAABB(_cockpit.CubeGrid).Center + _cockpit.CubeGrid.LinearVelocity / 60;
+                _targetPos = GetRenderWorldAABB(_targetEntity).Center + _targetEntity.Physics.LinearVelocity / 60;
+
+                var lerpSpeed = 1 / Plugin.Settings.CameraSmoothing;
+                _targetPos = Vector3D.Lerp(_previousTargetPos, _targetPos, lerpSpeed);
                 
                 var to = _targetPos - _shipPos;
                 var dist = to.Length();
@@ -248,12 +251,9 @@ namespace SETargetCamera
                 borrowedRtv.Release();
 
                 // Restore camera position
-                MyRender11.ViewportResolution = ogResolutionI;
-                MyRender11.ResolutionI = ogResolutionI;
-                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.Position, 0);
                 MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
                 MyRender11.ResolutionI = (Vector2I)ogResolutionI;
-                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.Position, 0);
+                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.Position, 0);
 
                 #region restore post-processing and lod settings
 
@@ -264,6 +264,11 @@ namespace SETargetCamera
                 debugOverrides.Bloom = (bool)ogBloom;
 
                 #endregion
+                
+                if (_cockpit.CubeGrid.PositionComp.WorldVolume.Center != _shipPos || _targetEntity.PositionComp.WorldVolume.Center != _targetPos)
+                {
+                    MyLog.Default.Log(MyLogSeverity.Warning, "Race condition detected!!");
+                }
             }
             catch (Exception ex)
             {
@@ -287,6 +292,53 @@ namespace SETargetCamera
             
         }
     
+        private static BoundingBoxD GetRenderWorldAABB(MyEntity entity)
+        {
+            var renderObjectIds = entity.Render.RenderObjectIDs;
+            if (renderObjectIds != null && renderObjectIds.Length > 0)
+            {
+                uint id = renderObjectIds[0];
+                var actor = MyIDTracker<MyActor>.FindByID(id);
+                if (actor != null)
+                {
+                    return actor.WorldAabb;
+                }
+            }
+            return entity.PositionComp.WorldAABB;
+            
+        }
+
+        private static MatrixD GetRenderWorldMatrix(MyEntity entity)
+        {
+            var renderObjectIds = entity.Render.RenderObjectIDs;
+            if (renderObjectIds != null && renderObjectIds.Length > 0)
+            {
+                uint id = renderObjectIds[0];
+                var actor = MyIDTracker<MyActor>.FindByID(id);
+                if (actor != null)
+                {
+                    return actor.WorldMatrix;
+                }
+            }
+            return entity.WorldMatrix;
+        }
+        
+
+        private static BoundingBoxD GetRenderLocalAABB(MyEntity entity)
+        {
+            var renderObjectIds = entity.Render.RenderObjectIDs;
+            if (renderObjectIds != null && renderObjectIds.Length > 0)
+            {
+                uint id = renderObjectIds[0];
+                var actor = MyIDTracker<MyActor>.FindByID(id);
+                if (actor != null && actor.HasLocalAabb)
+                {
+                    return actor.LocalAabb;
+                }
+            }
+            return entity.PositionComp.LocalAABB;
+        }
+        
 
         public static double GetFov(Vector3D from, Vector3D to, Vector3D dir, MyEntity targetEntity)
         {
@@ -294,8 +346,7 @@ namespace SETargetCamera
 
             // 2) Pull the local AABB and its world matrix
             var localAabb    = targetEntity.PositionComp.LocalAABB;  // in object space
-            MatrixD worldMat = targetEntity.WorldMatrix;
-
+            MatrixD worldMat = GetRenderWorldMatrix(targetEntity);
             // 3) Prepare to track the maximum half‑angle
             double maxTheta = 0.0;
 

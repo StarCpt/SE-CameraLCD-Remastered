@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>13</LangVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>SETargetCamera</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
