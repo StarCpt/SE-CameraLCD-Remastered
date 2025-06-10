@@ -4,6 +4,8 @@ using System;
 using System.Reflection;
 using SETargetCamera.Gui;
 using VRage.Plugins;
+using VRageMath;
+using VRageRender;
 
 namespace SETargetCamera
 {
@@ -25,6 +27,7 @@ namespace SETargetCamera
         public void Update()
         {
             //TargetCamera.Update();
+            float[] thing = [];
             
         }
 

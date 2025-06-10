@@ -1,5 +1,6 @@
-﻿
+﻿using System.Diagnostics;
 using HarmonyLib;
+using NLog.Targets;
 using VRageRenderAccessor.VRage.Render11.Resources;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
 
@@ -11,6 +12,13 @@ namespace SETargetCamera.Patches
         private static bool _drawingCameraLcds = false;
 
         [HarmonyPatch("VRageRender.MyRender11", "DrawGameScene")]
+        [HarmonyPrefix]
+        public static void MyRender11_DrawGameScene_Prefix(object renderTarget)
+        {
+            DisplayFrameTimer.TimeSinceUpdateMs = DisplayFrameTimer.Stopwatch.Elapsed.TotalMilliseconds;
+        }
+
+        [HarmonyPatch("VRageRender.MyRender11", "DrawGameScene")]
         [HarmonyPostfix]
         public static void MyRender11_DrawGameScene_Postfix(object renderTarget)
         {
@@ -18,7 +26,7 @@ namespace SETargetCamera.Patches
                 return;
 
             RenderTarget = new MyRtvTexture(renderTarget);
-            
+
             _drawingCameraLcds = true;
             TargetCamera.Draw();
 

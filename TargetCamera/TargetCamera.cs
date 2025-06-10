@@ -29,6 +29,8 @@ using VRageRender.Messages;
 using SETargetCamera;
 using SETargetCamera.Patches;
 using CoreSystems.Api;
+using NuGet.Configuration;
+using Sandbox;
 using VRageRenderAccessor.VRage.Render11.Common;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
 using VRageRenderAccessor.VRageRender;
@@ -37,6 +39,9 @@ namespace SETargetCamera
 {
     public class TargetCamera
     {
+        
+
+
         private static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
         private static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
         private static IMyEntityController PlayerController => LocalPlayer?.Controller;
@@ -50,6 +55,13 @@ namespace SETargetCamera
         private static WcApi _wcApi;
         private static bool _usesWc;
         private static bool _wasJustInCockpit;
+        
+        
+        
+        private static Vector3D _shipPos;
+        private static Vector3D _targetPos;
+        private static Vector3D _previousShipPos;
+        private static Vector3D _previousTargetPos;
         public static void ModLoad()
         {
             MyLog.Default.Log(MyLogSeverity.Info, "Target Camera binding MySession events");
@@ -78,6 +90,8 @@ namespace SETargetCamera
 
         public static void Update()
         {
+            if (!Plugin.Settings.Enabled) return;
+            DisplayFrameTimer.Stopwatch.Restart();
             // Step 1: Get the targeted entity and controlled grid
             
             var controlledEntity = PlayerController?.ControlledEntity;
@@ -106,17 +120,59 @@ namespace SETargetCamera
                 _wasJustInCockpit = true;
             }
 
-            
-        }
+            _previousShipPos = _shipPos;
 
-        // TODO: Credit Lurking StarCpt for doing most of the heavy lifting with the camera API
+
+            if (_targetEntity == null)
+            {
+                _previousTargetPos = _shipPos;
+                _targetPos = _shipPos;
+                return;
+            }
+            
+            _previousTargetPos = _targetPos;
+            _shipPos = _cockpit.CubeGrid.PositionComp.WorldVolume.Center;
+            _targetPos = _targetEntity.PositionComp.WorldVolume.Center;
+
+            var lerpSpeed = 1 / Plugin.Settings.CameraSmoothing;
+            _targetPos = Vector3D.Lerp(_previousTargetPos, _targetPos, lerpSpeed);
+            
+            // Creating the border
+
+            float border = Plugin.Settings.BorderThickness;
+            Color color = Plugin.Settings.BorderColor;
+            
+            
+            RectangleF left = new RectangleF(Plugin.Settings.X - border, Plugin.Settings.Y - border, border, Plugin.Settings.Height + border * 2 );
+            RectangleF right = new RectangleF(Plugin.Settings.X + Plugin.Settings.Width, Plugin.Settings.Y - border, border, Plugin.Settings.Height + border * 2);
+            RectangleF bottom = new RectangleF(Plugin.Settings.X - border, Plugin.Settings.Y - border, Plugin.Settings.Width + border * 2, border);
+            RectangleF top = new RectangleF(Plugin.Settings.X - border, Plugin.Settings.Y + Plugin.Settings.Height, Plugin.Settings.Width + border * 2, border);
+            
+            MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref left, null, color, 0, false, true);
+            MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref right, null, color, 0, false, true);
+            MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref bottom, null, color, 0, false, true);
+            MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref top, null, color, 0, false, true);
+        }
+        
         public static void Draw()
         {
+            if (!Plugin.Settings.Enabled) return;
             try
             {
+                var simSpeed = MySandboxGame.SimulationRatio;
+                var simTimeMs = DisplayFrameTimer.TimeSinceUpdateMs;
+                var maxSimTime = simSpeed * 16.6666666666;
+                var t = simTimeMs / maxSimTime;
+
+                // var shipPos = Vector3D.Lerp(_previousShipPos, _shipPos, t);
+                // var targetPos = Vector3D.Lerp(_previousTargetPos, _targetPos, t);
+                
                 MyCamera renderCamera = MySector.MainCamera;
 
-                if (_targetEntity == null || _cockpit == null || renderCamera == null) return;
+                if (_targetEntity == null || _cockpit == null || renderCamera == null)
+                {
+                    return;
+                }
                 var controlledGrid = _cockpit.CubeGrid;
                 
                 // MyEntities.TryGetEntityById(cockpit.TargetData.TargetId, out MyEntity targetEntity, true);
@@ -137,27 +193,26 @@ namespace SETargetCamera
                 debugOverrides.Flares = true;
                 debugOverrides.SSAO = false;
                 debugOverrides.Bloom = false;
-
+                float ogFarPLane = renderCamera.FarPlaneDistance;
                 #endregion
                 
                 // Step 3: Get target camera details (near clip, fov, cockpit up)
                 
                 float targetCameraNearPlane = 5; // Can probably get rid of this
                 var targetCameraUp = _cockpit.WorldMatrix.Up;
-                var shipPos = _cockpit.CubeGrid.PositionComp.WorldVolume.Center;
-                var targetPos = _targetEntity.PositionComp.WorldVolume.Center;
-                var to = targetPos - shipPos;
+                
+                var to = _targetPos - _shipPos;
                 var dist = to.Length();
                 if (dist < Plugin.Settings.MinRange) return;
                 var dir = to / dist;
-                float targetCameraFov = (float)GetFov(shipPos, to, dir, _targetEntity);
+                float targetCameraFov = (float)GetFov(_shipPos, to, dir, _targetEntity);
                 
                 
-                var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
+                var targetCameraPos = _shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
 
                 // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
 
-                var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, targetPos, targetCameraUp);
+                var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, _targetPos, targetCameraUp);
 
                 // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
                 Vector2I ogResolutionI = MyRender11.ResolutionI;
@@ -166,15 +221,18 @@ namespace SETargetCamera
                 
                 MyRender11.ViewportResolution = Size;
                 MyRender11.ResolutionI = Size;
-                SetCameraViewMatrix(targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, targetCameraFov, targetCameraFov, targetCameraNearPlane, targetCameraPos, 1);
+                SetCameraViewMatrix(targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, targetCameraFov, targetCameraFov, targetCameraNearPlane, (float)dist * 2, targetCameraPos, 1);
 
                 // Draw the game to the screen
                 var backbufferFormat = Patch_MyRender11.RenderTarget.Rtv.Description.Format;
                 var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv(TextureName, Size.X, Size.Y, backbufferFormat);
                 
                 MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
+                
                 debugAmbientOcclusion.Release();
-
+                
+                
+                // Placing the actual image onto the screen
                 MyRender11.DeviceInstance.ImmediateContext1.CopySubresourceRegion(
                     borrowedRtv.Resource, 0, null, 
                     Patch_MyRender11.RenderTarget.Resource, 0, 
@@ -185,7 +243,7 @@ namespace SETargetCamera
                 // Restore camera position
                 MyRender11.ViewportResolution = ogResolutionI;
                 MyRender11.ResolutionI = ogResolutionI;
-                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.Position, 0);
+                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.Position, 0);
 
                 #region restore post-processing and lod settings
 
@@ -203,6 +261,7 @@ namespace SETargetCamera
             }
             
         }
+    
 
         public static double GetFov(Vector3D from, Vector3D to, Vector3D dir, MyEntity targetEntity)
         {
@@ -269,7 +328,7 @@ namespace SETargetCamera
             return initial;
         }
 
-        private static void SetCameraViewMatrix(MatrixD viewMatrix, Matrix projectionMatrix, Matrix projectionFarMatrix, float fov, float fovSkybox, float nearPlane, Vector3D cameraPosition, int lastMomentUpdateIndex)
+        private static void SetCameraViewMatrix(MatrixD viewMatrix, Matrix projectionMatrix, Matrix projectionFarMatrix, float fov, float fovSkybox, float nearPlane, float farPlane, Vector3D cameraPosition, int lastMomentUpdateIndex)
         {
             MyCamera renderCamera = MySector.MainCamera;
             MyRenderMessageSetCameraViewMatrix renderMessage = MyRenderProxy.MessagePool.Get<MyRenderMessageSetCameraViewMatrix>(MyRenderMessageEnum.SetCameraViewMatrix);
@@ -279,7 +338,7 @@ namespace SETargetCamera
             renderMessage.FOV = fov;
             renderMessage.FOVForSkybox = fovSkybox;
             renderMessage.NearPlane = nearPlane;
-            renderMessage.FarPlane = renderCamera.FarPlaneDistance;
+            renderMessage.FarPlane = farPlane;
             renderMessage.FarFarPlane = renderCamera.FarFarPlaneDistance;
             renderMessage.CameraPosition = cameraPosition;
             renderMessage.LastMomentUpdateIndex = lastMomentUpdateIndex;

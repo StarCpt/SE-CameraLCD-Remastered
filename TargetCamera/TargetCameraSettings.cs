@@ -2,6 +2,7 @@
 using System.Xml;
 using System.Xml.Serialization;
 using VRage.FileSystem;
+using VRageMath;
 
 namespace SETargetCamera
 {
@@ -22,6 +23,11 @@ namespace SETargetCamera
         public int Height { get; set; } = 500;
 
         public float MinRange { get; set; } = 100;
+
+        public double CameraSmoothing { get; set; } = 10;
+        public float BorderThickness { get; set; } = 1;
+
+        public Color BorderColor { get; set; } = Color.White;
 
         public static TargetCameraSettings Load()
         {

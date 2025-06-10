@@ -15,7 +15,7 @@ namespace SETargetCamera.Gui
         private MyGuiControlLabel rangeLabel;
         
 
-        public MyGuiScreenPluginConfig() : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, new Vector2(0.6f, 0.4f), false, null, MySandboxGame.Config.UIBkOpacity, MySandboxGame.Config.UIOpacity)
+        public MyGuiScreenPluginConfig() : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, new Vector2(0.6f, 0.8f), false, null, MySandboxGame.Config.UIBkOpacity, MySandboxGame.Config.UIOpacity)
         {
             EnabledBackgroundFade = true;
             CloseButtonEnabled = true;
@@ -88,13 +88,37 @@ namespace SETargetCamera.Gui
             AddCaption(rangeBox, "Minimum Range", true);
             pos.Y += wBox.Size.Y + space;
             
+            // SMOOTHING
+            MyGuiControlTextbox smoothBox = new MyGuiControlTextbox(pos, settings.CameraSmoothing.ToString(), type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 1);
+            smoothBox.TextChanged += SmoothBoxChanged;
+            Controls.Add(smoothBox);
+            AddCaption(smoothBox, "Camera Smoothing", true);
+            pos.Y += wBox.Size.Y + space;
+            
+            // BORDER THICKNESS
+            MyGuiControlTextbox borderBox = new MyGuiControlTextbox(pos, settings.BorderThickness.ToString(), type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 0);
+            borderBox.TextChanged += BorderBoxChanged;
+            Controls.Add(borderBox);
+            AddCaption(borderBox, "Border Thickness", true);
+            pos.Y += wBox.Size.Y + space * 2;
+            
+            // BORDER COLOUR
+            MyGuiControlColor controlColor =
+                new MyGuiControlColor("", 0.95f, pos, settings.BorderColor, Color.White, MyCommonTexts.DialogAmount_SetValueCaption, true, isAutoscaleEnabled: false);
+            controlColor.Size = new Vector2(wBox.Size.X, wBox.Size.Y);
+            controlColor.OnChange += BorderColourChanged;
+            Controls.Add(controlColor);
+            AddCaption(controlColor, "Border Colour", true);
+            
+            pos.Y += wBox.Size.Y + space;
+            
             // Bottom
             pos = new Vector2(0, (m_size.Value.Y / 2) - space);
             MyGuiControlButton closeButton = new MyGuiControlButton(pos, text: MyTexts.Get(MyCommonTexts.Close), originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM, onButtonClick: OnCloseClicked);
             Controls.Add(closeButton);
         }
 
-
+        
 
 
         private void OnCloseClicked(MyGuiControlButton btn)
@@ -137,7 +161,22 @@ namespace SETargetCamera.Gui
         
         private void RangeBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.MinRange = Math.Max(int.TryParse(tb.Text, out var result) ? result : 0, 0);
+            Plugin.Settings.MinRange = Math.Max(float.TryParse(tb.Text, out var result) ? result : 0, 0);
+        }
+        
+        private void SmoothBoxChanged(MyGuiControlTextbox tb)
+        {
+            Plugin.Settings.CameraSmoothing = Math.Max(float.TryParse(tb.Text, out var result) ? result : 1, 1);
+        }
+        
+        private void BorderBoxChanged(MyGuiControlTextbox tb)
+        {
+            Plugin.Settings.BorderThickness = Math.Max(float.TryParse(tb.Text, out var result) ? result : 0, 0);
+        }
+        
+        private void BorderColourChanged(MyGuiControlColor cb)
+        {
+            Plugin.Settings.BorderColor = cb.Color;
         }
     }
 }

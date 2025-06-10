@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net9</TargetFramework>
     <OutputType>Library</OutputType>
     <RootNamespace>SETargetCamera</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -331,4 +331,20 @@
   <ItemGroup>
     <ProjectReference Include="..\SE-VRageRenderAccessorLib\SE-VRageRenderAccessor.csproj" />
   </ItemGroup>
+
+  <Target Name="CopyFiles" AfterTargets="Build">
+    <Message Text="Executing CopyFiles Target" Importance="high" />
+    <ItemGroup>
+      <MySourceFiles Include="$(OutputPath)**\*.*"/>
+    </ItemGroup>
+
+
+    <Message Text="Files to be copied: @(MySourceFiles)" Importance="high" />
+
+    <Copy
+            SourceFiles="@(MySourceFiles)"
+            DestinationFolder="/home/deltawing/.steam/debian-installation/steamapps/common/SpaceEngineers/Bin64/Plugins/Local/TargetCamera/"
+    />
+  </Target>
+  
 </Project>
