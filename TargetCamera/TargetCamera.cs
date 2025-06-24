@@ -47,6 +47,7 @@ namespace SETargetCamera
         private static IMyEntityController PlayerController => LocalPlayer?.Controller;
 
         private static MyEntity _targetEntity;
+        private static MyEntity _previousTargetEntity;
         private static MyShipController _cockpit;
 
         private const string TextureName = "TargetCamera";
@@ -58,10 +59,17 @@ namespace SETargetCamera
         
         
         
-        private static Vector3D _shipPos;
-        private static Vector3D _targetPos;
-        private static Vector3D _previousShipPos;
         private static Vector3D _previousTargetPos;
+        private static Vector3D _targetPos;
+        private static float _previousFov;
+        
+        
+        private static Vector3D _shipOffset;
+        private static Vector3D _targetOffset;
+
+
+        private static bool _withinRange = false;
+        
         public static void ModLoad()
         {
             MyLog.Default.Log(MyLogSeverity.Info, "Target Camera binding MySession events");
@@ -107,9 +115,10 @@ namespace SETargetCamera
             }
 
             TargetCamera._cockpit = cockpit;
-            
+            _previousTargetEntity = _targetEntity;
             if (_usesWc)
             {
+                
                 _targetEntity = _wcApi.GetAiFocus(cockpit.CubeGrid);
                 
             }
@@ -119,16 +128,33 @@ namespace SETargetCamera
                 _targetEntity = targetData.TargetId is 0 || !targetData.IsTargetLocked ? null : MyEntities.GetEntityById(targetData.TargetId);
                 _wasJustInCockpit = true;
             }
-
-            _previousShipPos = _shipPos;
-
-
+            
             if (_targetEntity == null)
             {
-                _previousTargetPos = _shipPos;
+                _targetOffset = Vector3D.Zero;
                 return;
             }
+
+            if (_previousTargetEntity == null || _targetEntity == null || _previousTargetEntity != _targetEntity)
+            {
+                _easeLerpSpeed = 0;
+                _easeLerpSpeed2 = 0;
+            }
             
+            _shipOffset = cockpit.CubeGrid.WorldMatrix.Translation - cockpit.CubeGrid.PositionComp.WorldAABB.Center;
+            _targetOffset = _targetEntity.WorldMatrix.Translation - _targetEntity.PositionComp.WorldAABB.Center;
+
+
+
+            if ((_targetEntity.PositionComp.WorldAABB.Center - cockpit.CubeGrid.PositionComp.WorldAABB.Center).Length() <
+                Plugin.Settings.MinRange)
+            {
+                _withinRange = true;
+                return;
+            }
+
+
+            _withinRange = false;
             // Creating the border
 
             float border = Plugin.Settings.BorderThickness;
@@ -145,13 +171,17 @@ namespace SETargetCamera
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref bottom, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref top, null, color, 0, false, true);
         }
+
+
+        private static double _easeLerpSpeed = 0;
+        private static double _easeLerpSpeed2 = 0;
         
         public static void Draw()
         {
             
             
             
-            if (!Plugin.Settings.Enabled) return;
+            if (!Plugin.Settings.Enabled || _withinRange) return;
             bool? ogLods = null;
             bool? ogDrawBillboards = null;
             bool? ogFlares = null;
@@ -167,9 +197,7 @@ namespace SETargetCamera
                 var simTimeMs = DisplayFrameTimer.TimeSinceUpdateMs;
                 var maxSimTime = simSpeed * 16.6666666666;
                 var t = simTimeMs / maxSimTime;
-
-                // var shipPos = Vector3D.Lerp(_previousShipPos, _shipPos, t);
-                // var targetPos = Vector3D.Lerp(_previousTargetPos, _targetPos, t);
+                
                 
                 MyCamera renderCamera = MySector.MainCamera;
 
@@ -204,21 +232,32 @@ namespace SETargetCamera
                 float targetCameraNearPlane = 5; // Can probably get rid of this
                 var targetCameraUp = _cockpit.WorldMatrix.Up;
                 
+                var shipPos = GetRenderWorldMatrix(_cockpit.CubeGrid).Translation - _shipOffset;
+                
                 _previousTargetPos = _targetPos;
-                _shipPos = GetRenderWorldAABB(_cockpit.CubeGrid).Center + _cockpit.CubeGrid.LinearVelocity / 60;
-                _targetPos = GetRenderWorldAABB(_targetEntity).Center + _targetEntity.Physics.LinearVelocity / 60;
+                var realTargetPos = GetRenderWorldMatrix(_targetEntity).Translation - _targetOffset;
+                var lerpFactor = 1 / Plugin.Settings.CameraSmoothing;
 
-                var lerpSpeed = 1 / Plugin.Settings.CameraSmoothing;
-                _targetPos = Vector3D.Lerp(_previousTargetPos, _targetPos, lerpSpeed);
+                _easeLerpSpeed += lerpFactor;
+                _easeLerpSpeed = Math.Min(_easeLerpSpeed, 1);
+                _easeLerpSpeed2 += _easeLerpSpeed;
+                _easeLerpSpeed2 = Math.Min(_easeLerpSpeed2, 1);
                 
-                var to = _targetPos - _shipPos;
+                _targetPos = Vector3D.Lerp(_previousTargetPos, realTargetPos, _easeLerpSpeed2);
+                
+                var to = _targetPos - shipPos;
                 var dist = to.Length();
-                if (dist < Plugin.Settings.MinRange) return;
                 var dir = to / dist;
-                float targetCameraFov = (float)GetFov(_shipPos, to, dir, _targetEntity);
                 
                 
-                var targetCameraPos = _shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
+                float targetCameraFov = (float)GetFov(shipPos, to, dir, _targetEntity);
+
+
+                targetCameraFov = (float)MathHelper.Lerp(_previousFov, targetCameraFov, _easeLerpSpeed);
+                _previousFov = targetCameraFov;
+                
+                
+                var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
 
                 // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
 
@@ -264,11 +303,6 @@ namespace SETargetCamera
                 debugOverrides.Bloom = (bool)ogBloom;
 
                 #endregion
-                
-                if (_cockpit.CubeGrid.PositionComp.WorldVolume.Center != _shipPos || _targetEntity.PositionComp.WorldVolume.Center != _targetPos)
-                {
-                    MyLog.Default.Log(MyLogSeverity.Warning, "Race condition detected!!");
-                }
             }
             catch (Exception ex)
             {
