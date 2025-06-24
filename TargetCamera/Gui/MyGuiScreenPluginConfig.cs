@@ -100,7 +100,7 @@ namespace SETargetCamera.Gui
             borderBox.TextChanged += BorderBoxChanged;
             Controls.Add(borderBox);
             AddCaption(borderBox, "Border Thickness", true);
-            pos.Y += wBox.Size.Y + space * 2;
+            pos.Y += wBox.Size.Y + space * 10;
             
             // BORDER COLOUR
             MyGuiControlColor controlColor =
@@ -108,7 +108,7 @@ namespace SETargetCamera.Gui
             controlColor.Size = new Vector2(wBox.Size.X, wBox.Size.Y);
             controlColor.OnChange += BorderColourChanged;
             Controls.Add(controlColor);
-            AddCaption(controlColor, "Border Colour", true);
+            AddCaption(controlColor, "", true);
             
             pos.Y += wBox.Size.Y + space;
             
