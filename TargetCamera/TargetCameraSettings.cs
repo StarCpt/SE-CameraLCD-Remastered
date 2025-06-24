@@ -22,9 +22,9 @@ namespace SETargetCamera
         public int Width { get; set; } = 500;
         public int Height { get; set; } = 500;
 
-        public float MinRange { get; set; } = 100;
+        public float MinRange { get; set; } = 1000;
 
-        public double CameraSmoothing { get; set; } = 10;
+        public double CameraSmoothing { get; set; } = 2000;
         public float BorderThickness { get; set; } = 1;
 
         public Color BorderColor { get; set; } = Color.White;
