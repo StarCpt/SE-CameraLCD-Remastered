@@ -2,6 +2,7 @@
 using System.Xml;
 using System.Xml.Serialization;
 using VRage.FileSystem;
+using VRage.Input;
 using VRageMath;
 
 namespace SETargetCamera
@@ -16,11 +17,9 @@ namespace SETargetCamera
         }
 
         public bool Enabled { get; set; } = true;
-
-        public int X { get; set; } = 25;
-        public int Y { get; set; } = 25;
-        public int Width { get; set; } = 500;
-        public int Height { get; set; } = 500;
+        
+        public Vector2I Pos { get; set; } = new Vector2I(25, 25);
+        public Vector2I Size { get; set; } = new Vector2I(500, 500);
 
         public float MinRange { get; set; } = 1000;
 
@@ -28,6 +27,8 @@ namespace SETargetCamera
         public float BorderThickness { get; set; } = 1;
 
         public Color BorderColor { get; set; } = Color.White;
+
+        public byte FullscreenKey { get; set; } = (byte)MyKeys.M;
 
         public static TargetCameraSettings Load()
         {

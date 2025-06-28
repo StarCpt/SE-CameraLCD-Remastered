@@ -34,22 +34,6 @@ namespace SETargetCamera.Patches
             RenderTarget = null;
             _drawingCameraLcds = false;
         }
-
-
-
-        [HarmonyPatch("VRage.Render11.GeometryStage2.Rendering.MyGeometryRenderer", "UpdateMatrices")]
-        [HarmonyPrefix]
-        public static void MyRender11_GeometryStage2_Rendering_MyGeometryRenderer_UpdateMatrices_Prefix()
-        {
-            MyLog.Default.Log(MyLogSeverity.Info, "UpdateMatrices");
-        }
-
-        [HarmonyPatch("VRage.Render11.GeometryStage2.Rendering.MyGeometryRenderer", "UpdateLods")]
-        [HarmonyPrefix]
-        public static void MyRender11_GeometryStage2_Rendering_MyGeometryRenderer_UpdateLods_Prefix()
-        {
-            MyLog.Default.Log(MyLogSeverity.Info, "UpdateLods");
-        }
         public static IRtvBindable RenderTarget { get; private set; }
     }
 }

@@ -30,6 +30,7 @@ using SETargetCamera;
 using SETargetCamera.Patches;
 using CoreSystems.Api;
 using Sandbox;
+using VRage.Input;
 using VRage.Render.Scene;
 using VRageRenderAccessor.VRage.Render11.Common;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
@@ -39,9 +40,14 @@ namespace SETargetCamera
 {
     public class TargetCamera
     {
+        private static Vector2 _pos = Plugin.Settings.Pos;
+        private static Vector2I _desiredPos = Plugin.Settings.Pos;
         
+        private static Vector2 _size = Plugin.Settings.Size; // TODO: Full screen cam
+        private static Vector2I _desiredSize = Plugin.Settings.Size;
 
 
+        
         private static IMyPlayer LocalPlayer => MyAPIGateway.Session?.Player;
         private static MyCharacter PlayerCharacter => LocalPlayer?.Character as MyCharacter;
         private static IMyEntityController PlayerController => LocalPlayer?.Controller;
@@ -56,11 +62,13 @@ namespace SETargetCamera
         private static WcApi _wcApi;
         private static bool _usesWc;
         private static bool _wasJustInCockpit;
-        
+
+        private static bool _fullscreen;
         
         
         private static Vector3D _previousTargetPos;
         private static Vector3D _targetPos;
+        private static float _fov;
         private static float _previousFov;
         
         
@@ -86,7 +94,8 @@ namespace SETargetCamera
         {
             MyLog.Default.Log(MyLogSeverity.Info, "WC exists");
             _usesWc = true;
-            
+
+            WeaponCoreInterop.Initialize(); // Initializes our reflection hacks >:) API function missing? Fine. I'll do it myself.
         }
 
         public static void WorldUnload()
@@ -98,6 +107,9 @@ namespace SETargetCamera
 
         public static void Update()
         {
+            UpdateScreenSize();
+            DrawTargetPos();
+            
             if (!Plugin.Settings.Enabled) return;
             DisplayFrameTimer.Stopwatch.Restart();
             // Step 1: Get the targeted entity and controlled grid
@@ -159,26 +171,104 @@ namespace SETargetCamera
 
             float border = Plugin.Settings.BorderThickness;
             Color color = Plugin.Settings.BorderColor;
+
+            var x = _pos.X;
+            var y = _pos.Y;
+            var width = _size.X;
+            var height = _size.Y;
             
-            
-            RectangleF left = new RectangleF(Plugin.Settings.X - border, Plugin.Settings.Y - border, border, Plugin.Settings.Height + border * 2 );
-            RectangleF right = new RectangleF(Plugin.Settings.X + Plugin.Settings.Width, Plugin.Settings.Y - border, border, Plugin.Settings.Height + border * 2);
-            RectangleF bottom = new RectangleF(Plugin.Settings.X - border, Plugin.Settings.Y - border, Plugin.Settings.Width + border * 2, border);
-            RectangleF top = new RectangleF(Plugin.Settings.X - border, Plugin.Settings.Y + Plugin.Settings.Height, Plugin.Settings.Width + border * 2, border);
+            RectangleF left = new RectangleF(x - border, y - border, border, height + border * 2 );
+            RectangleF right = new RectangleF(x + width, y - border, border, height + border * 2);
+            RectangleF bottom = new RectangleF(x - border, y - border, width + border * 2, border);
+            RectangleF top = new RectangleF(x - border, y + height, width + border * 2, border);
             
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref left, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref right, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref bottom, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref top, null, color, 0, false, true);
+
+
+            if (_targetEntity is MyCubeGrid grid)
+            {
+                //WeaponCoreInterop.UpdatePaintedTarget(grid.PositionComp.WorldAABB.Center, grid); // Doing something with this
+            }
         }
+
+        private static void UpdateScreenSize()
+        {
+            bool keyHeld = MyAPIGateway.Input.IsKeyPress((MyKeys)Plugin.Settings.FullscreenKey);
+
+            if (keyHeld)
+            {
+                _desiredPos = new Vector2I(25, 25);
+                var screen = MyGuiManager.GetFullscreenRectangle();
+                _desiredSize = new Vector2I(screen.Width - 50, screen.Height - 50);
+                MySandboxGame.Static.SetMouseVisible(true);
+                
+                _fullscreen = true;
+            }
+            else
+            {
+                _desiredPos = Plugin.Settings.Pos;
+                _desiredSize = Plugin.Settings.Size;
+                _fullscreen = false;
+            }
+            
+            _pos = Vector2.Lerp(_pos, _desiredPos, 0.5f);
+            _size = Vector2.Lerp(_size, _desiredSize, 0.5f);
+
+
+            if (_fullscreen && MyInput.Static.IsNewLeftMousePressed() && _usesWc)
+            {
+                Vector3D ray = Project2DToWorldDir(MyInput.Static.GetMousePosition(), _pos, _size, _targetCameraForward,
+                    _targetCameraUp, _fov);
+
+
+                List<IHitInfo> hitResult = new List<IHitInfo>();
+                MyAPIGateway.Physics.CastRay(_virtualCameraPos, _virtualCameraPos + ray * 100000, hitResult);
+                var colour = new Vector4(255, 255, 255, 255);
+                //DebugDraw.DrawLine(_virtualCameraPos, _virtualCameraPos + ray * 100000, colour, 2, 60);
+                
+                
+                // Sort all hits by distance from _virtualCameraPos
+                var sortedHits = hitResult
+                    .OrderBy(h => Vector3D.DistanceSquared(_virtualCameraPos, h.Position))
+                    .ToList();
+
+                // If there's at least one hit and it's on your target entity, update painted target
+                if (sortedHits.Count > 0)
+                {
+                    var closestHit = sortedHits[0];
+                    if (_targetEntity != null && closestHit.HitEntity is MyCubeGrid entity &&
+                        entity.EntityId == _targetEntity.EntityId)
+                    {
+                        WeaponCoreInterop.UpdatePaintedTarget(closestHit.Position, entity);
+                    }
+                    else
+                    {
+                        _wcApi.SetAiFocus(_cockpit.CubeGrid, (MyEntity)closestHit.HitEntity);
+                    }
+                }
+                else
+                {
+                    
+                }
+            }
+        }
+        
 
 
         private static double _easeLerpSpeed = 0;
         private static double _easeLerpSpeed2 = 0;
-        
+        private static Vector3D _virtualCameraPos;
+        private static MatrixD _targetCameraViewMatrix;
+        private static Vector3D _targetCameraForward;
+        private static Vector3D _targetCameraUp;
+
         public static void Draw()
         {
             
+            DebugDraw.Draw();
             
             
             if (!Plugin.Settings.Enabled || _withinRange) return;
@@ -230,7 +320,7 @@ namespace SETargetCamera
                 // Step 3: Get target camera details (near clip, fov, cockpit up)
                 
                 float targetCameraNearPlane = 5; // Can probably get rid of this
-                var targetCameraUp = _cockpit.WorldMatrix.Up;
+                _targetCameraUp = _cockpit.WorldMatrix.Up;
                 
                 var shipPos = GetRenderWorldMatrix(_cockpit.CubeGrid).Translation - _shipOffset;
                 
@@ -245,36 +335,36 @@ namespace SETargetCamera
                 
                 _targetPos = Vector3D.Lerp(_previousTargetPos, realTargetPos, _easeLerpSpeed2);
                 
-                var to = _targetPos - shipPos;
-                var dist = to.Length();
-                var dir = to / dist;
+                _targetCameraForward = _targetPos - shipPos;
+                var dist = _targetCameraForward.Length();
+                var dir = _targetCameraForward / dist;
                 
                 
-                float targetCameraFov = (float)GetFov(shipPos, to, dir, _targetEntity);
+                _fov = (float)GetFov(shipPos, _targetCameraForward, dir, _targetEntity);
 
 
-                targetCameraFov = (float)MathHelper.Lerp(_previousFov, targetCameraFov, _easeLerpSpeed);
-                _previousFov = targetCameraFov;
+                _fov = (float)MathHelper.Lerp(_previousFov, _fov, _easeLerpSpeed);
+                _previousFov = _fov;
                 
                 
-                var targetCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
+                _virtualCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
 
                 // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
 
-                var targetCameraViewMatrix = MatrixD.CreateLookAt(targetCameraPos, _targetPos, targetCameraUp);
+                _targetCameraViewMatrix = MatrixD.CreateLookAt(_virtualCameraPos, _targetPos, _targetCameraUp);
 
                 // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
                 ogResolutionI = MyRender11.ResolutionI;
 
-                Vector2I Size = new Vector2I(Plugin.Settings.Width, Plugin.Settings.Height);
+                Vector2I size = (Vector2I)_size;
                 
-                MyRender11.ViewportResolution = Size;
-                MyRender11.ResolutionI = Size;
-                SetCameraViewMatrix(targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, targetCameraFov, targetCameraFov, targetCameraNearPlane, (float)dist * 2, targetCameraPos, 1);
+                MyRender11.ViewportResolution = size;
+                MyRender11.ResolutionI = size;
+                SetCameraViewMatrix(_targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, _fov, _fov, targetCameraNearPlane, (float)dist * 2, _virtualCameraPos, 1);
 
                 // Draw the game to the screen
                 var backbufferFormat = Patch_MyRender11.RenderTarget.Rtv.Description.Format;
-                var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv(TextureName, Size.X, Size.Y, backbufferFormat);
+                var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv(TextureName, size.X, size.Y, backbufferFormat);
                 
                 MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
                 
@@ -285,7 +375,7 @@ namespace SETargetCamera
                 MyRender11.DeviceInstance.ImmediateContext1.CopySubresourceRegion(
                     borrowedRtv.Resource, 0, null, 
                     Patch_MyRender11.RenderTarget.Resource, 0, 
-                    Plugin.Settings.X, Plugin.Settings.Y
+                    (int)_pos.X, (int)_pos.Y
                     );
                 borrowedRtv.Release();
 
@@ -325,7 +415,39 @@ namespace SETargetCamera
             }
             
         }
-    
+
+        private static void DrawTargetPos()
+        {
+            if (!_usesWc) return;
+            var posMaybe = WeaponCoreInterop.GetPaintedTargetLocalPosition();
+            if (posMaybe.HasValue && _targetEntity != null)
+            {
+                
+                var pos = posMaybe.Value;
+                var worldPos = Vector3D.Transform(pos, _targetEntity.WorldMatrix);
+                MatrixD worldMatrix = MatrixD.CreateTranslation(worldPos);
+                Color color = Plugin.Settings.BorderColor;
+                float radius = 2f;
+                float lineThickness = 0.2f;
+                int divisions = 16;
+                MySimpleObjectDraw.DrawTransparentSphere(
+                    ref worldMatrix,
+                    radius,
+                    ref color,
+                    MySimpleObjectRasterizer.Solid,
+                    divisions,
+                    MyStringId.GetOrCompute("Debug"),
+                    MyStringId.GetOrCompute("Debug"),
+                    lineThickness,
+                    customViewProjectionMatrix: -1,
+                    persistentBillboards: null,
+                    blendType: MyBillboard.BlendTypeEnum.AdditiveTop,  // Try Additive to force on top
+                    intensity: 3f  // Boost brightness so it's visible
+                );
+                
+            }
+        }
+
         private static BoundingBoxD GetRenderWorldAABB(MyEntity entity)
         {
             var renderObjectIds = entity.Render.RenderObjectIDs;
@@ -465,6 +587,42 @@ namespace SETargetCamera
             {
                 _targetEntity = target;
             }
+        }
+        
+        
+        public static Vector3 Project2DToWorldDir(
+            Vector2 pos2D, Vector2 displayPos, Vector2 displaySize,
+            Vector3 camForward, Vector3 camUp, float fovY)
+        {
+            // 1) Compute local X,Y in display
+            Vector2 localPos = pos2D - displayPos;
+            Vector2 norm = new Vector2(
+                localPos.X / displaySize.X,
+                localPos.Y / displaySize.Y
+            );
+
+            // 2) To NDC [-1,1]
+            Vector2 ndc = new Vector2(
+                norm.X * 2f - 1f,
+                1f - norm.Y * 2f   // flip Y
+            );
+
+            // 3) Build orthonormal basis
+            Vector3 forward = Vector3.Normalize(camForward);
+            Vector3 right   = Vector3.Normalize(Vector3.Cross(forward, camUp));
+            Vector3 up      = Vector3.Normalize(Vector3.Cross(right, forward));
+
+            // 4) Compute camera-space offsets
+            float aspect = displaySize.X / displaySize.Y;
+            float tanFov = (float)Math.Tan(fovY * 0.5f);
+
+            Vector3 offset =
+                right * (ndc.X * aspect * tanFov) +
+                up    * (ndc.Y *            tanFov) +
+                forward;                      // z = +1
+
+            // 5) Normalize to get direction
+            return Vector3.Normalize(offset);
         }
     }
 }

@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Text;
 using Sandbox;
 using Sandbox.Graphics.GUI;
+using SETargetCamera.GUI;
 using VRage;
+using VRage.Input;
 using VRage.Utils;
 using VRageMath;
 
@@ -54,28 +57,28 @@ namespace SETargetCamera.Gui
             pos.Y += enabledCheckbox.Size.Y + space;
             
             // X
-            MyGuiControlTextbox xBox = new MyGuiControlTextbox(pos, settings.X.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
+            MyGuiControlTextbox xBox = new MyGuiControlTextbox(pos, settings.Pos.X.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
             xBox.TextChanged += XPositionBoxChanged;
             Controls.Add(xBox);
             AddCaption(xBox, "X Position", true);
             pos.Y += xBox.Size.Y + space;
             
             // Y
-            MyGuiControlTextbox yBox = new MyGuiControlTextbox(pos, settings.Y.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
+            MyGuiControlTextbox yBox = new MyGuiControlTextbox(pos, settings.Pos.Y.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
             yBox.TextChanged += YPositionBoxChanged;
             Controls.Add(yBox);
             AddCaption(yBox, "Y Position", true);
             pos.Y += yBox.Size.Y + space;
             
             // WIDTH
-            MyGuiControlTextbox wBox = new MyGuiControlTextbox(pos, settings.Width.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
+            MyGuiControlTextbox wBox = new MyGuiControlTextbox(pos, settings.Size.X.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
             wBox.TextChanged += WidthBoxChanged;
             Controls.Add(wBox);
             AddCaption(wBox, "Width", true);
             pos.Y += wBox.Size.Y + space;
             
             // HEIGHT
-            MyGuiControlTextbox hBox = new MyGuiControlTextbox(pos, settings.Height.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
+            MyGuiControlTextbox hBox = new MyGuiControlTextbox(pos, settings.Size.Y.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
             hBox.TextChanged += HeightBoxChanged;
             Controls.Add(hBox);
             AddCaption(hBox, "Height", true);
@@ -110,15 +113,43 @@ namespace SETargetCamera.Gui
             Controls.Add(controlColor);
             AddCaption(controlColor, "", true);
             
-            pos.Y += wBox.Size.Y + space;
+            pos.Y += wBox.Size.Y + space * 10;
+
+
+            StringBuilder boundButton = new StringBuilder();
+            boundButton.Append(((MyKeys)settings.FullscreenKey == MyKeys.None) ? "None" : MyInput.Static.GetKeyName((MyKeys)settings.FullscreenKey));
+            var keybindBox = new MyGuiControlButton(originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER, text: boundButton, visualStyle: VRage.Game.MyGuiControlButtonStyleEnum.ControlSetting, onButtonClick: OnBindingKeyClick, onSecondaryButtonClick: OnBindingKeySecondaryClick, toolTip: "Click to edit.\nRight click to clear.");
+            keybindBox.Position = pos;
+            Controls.Add(keybindBox);
+            var bindingKeyLabel = new MyGuiControlLabel(originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER, text: "Fullscreen");
+            // pos.Y += wBox.Size.Y + space * 2;
+            bindingKeyLabel.Position = pos - wBox.Size.Y - space;
+            Controls.Add(bindingKeyLabel);
             
+            pos.Y += wBox.Size.Y + space;
             // Bottom
             pos = new Vector2(0, (m_size.Value.Y / 2) - space);
             MyGuiControlButton closeButton = new MyGuiControlButton(pos, text: MyTexts.Get(MyCommonTexts.Close), originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM, onButtonClick: OnCloseClicked);
             Controls.Add(closeButton);
         }
 
-        
+        private void OnBindingKeyClick(MyGuiControlButton button)
+        {
+            MyKeys key = (MyKeys)Plugin.Settings.FullscreenKey;
+            MyPluginBinderMessageBox myGuiControlAssignKeyMessageBox = new MyPluginBinderMessageBox(key, new StringBuilder("Press desired Zoom key."), new StringBuilder("Zoom Binding"));
+            myGuiControlAssignKeyMessageBox.Closed += delegate
+            {
+                Plugin.Settings.FullscreenKey = (byte)myGuiControlAssignKeyMessageBox.OutKey;
+                this.RecreateControls(false);
+            };
+            MyGuiSandbox.AddScreen(myGuiControlAssignKeyMessageBox);
+        }
+
+        private void OnBindingKeySecondaryClick(MyGuiControlButton button)
+        {
+            Plugin.Settings.FullscreenKey = (byte)MyKeys.None;
+            this.RecreateControls(false);
+        }
 
 
         private void OnCloseClicked(MyGuiControlButton btn)
@@ -143,20 +174,26 @@ namespace SETargetCamera.Gui
 
         void XPositionBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.X = int.TryParse(tb.Text, out var result) ? result : 0;
+            Plugin.Settings.Pos = Plugin.Settings.Pos with { X = int.TryParse(tb.Text, out var result) ? result : 0 };
         }
         void YPositionBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Y = int.TryParse(tb.Text, out var result) ? result : 0;
+            Plugin.Settings.Pos = Plugin.Settings.Pos with { Y = int.TryParse(tb.Text, out var result) ? result : 0 };
         }
         
         void WidthBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Width = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
+            Plugin.Settings.Size = Plugin.Settings.Size with
+            {
+                X = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100)
+            };
         }
         void HeightBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Height = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
+            Plugin.Settings.Size = Plugin.Settings.Size with
+            {
+                Y = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100)
+            };
         }
         
         private void RangeBoxChanged(MyGuiControlTextbox tb)
