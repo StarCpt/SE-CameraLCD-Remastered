@@ -420,11 +420,11 @@ namespace SETargetCamera
         {
             if (!_usesWc) return;
             var posMaybe = WeaponCoreInterop.GetPaintedTargetLocalPosition();
-            if (posMaybe.HasValue && _targetEntity != null)
+            if (posMaybe.HasValue && _targetEntity is { Physics: not null })
             {
                 
                 var pos = posMaybe.Value;
-                var worldPos = Vector3D.Transform(pos, _targetEntity.WorldMatrix);
+                var worldPos = Vector3D.Transform(pos, _targetEntity.WorldMatrix) + _targetEntity.Physics.LinearVelocity / 60;
                 MatrixD worldMatrix = MatrixD.CreateTranslation(worldPos);
                 Color color = Plugin.Settings.BorderColor;
                 float radius = 2f;
