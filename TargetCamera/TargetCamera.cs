@@ -38,6 +38,7 @@ using VRageRenderAccessor.VRageRender;
 
 namespace SETargetCamera
 {
+    // TODO: damage feedback, text indicator for zoom level azimuth and elevation, highlight ship outline maybe, disable input when in full screen, fix cursor flickering
     public class TargetCamera
     {
         private static Vector2 _pos = Plugin.Settings.Pos;
@@ -236,7 +237,7 @@ namespace SETargetCamera
                     .ToList();
 
                 // If there's at least one hit and it's on your target entity, update painted target
-                if (sortedHits.Count > 0 && _cockpit is { CubeGrid: not null })
+                if (sortedHits.Count > 0 && _cockpit != null && _cockpit.CubeGrid != null)
                 {
                     var closestHit = sortedHits[0];
                     if (_targetEntity != null && closestHit.HitEntity is MyCubeGrid entity &&
@@ -420,7 +421,7 @@ namespace SETargetCamera
         {
             if (!_usesWc) return;
             var posMaybe = WeaponCoreInterop.GetPaintedTargetLocalPosition();
-            if (posMaybe.HasValue && _targetEntity is { Physics: not null })
+            if (posMaybe.HasValue && _targetEntity != null && _targetEntity.Physics != null)
             {
                 
                 var pos = posMaybe.Value;

@@ -174,26 +174,30 @@ namespace SETargetCamera.Gui
 
         void XPositionBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Pos = Plugin.Settings.Pos with { X = int.TryParse(tb.Text, out var result) ? result : 0 };
+            var pos = Plugin.Settings.Pos;
+            pos.X = int.TryParse(tb.Text, out var result) ? result : 0;
+            Plugin.Settings.Pos = pos;
         }
+
         void YPositionBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Pos = Plugin.Settings.Pos with { Y = int.TryParse(tb.Text, out var result) ? result : 0 };
+            var pos = Plugin.Settings.Pos;
+            pos.Y = int.TryParse(tb.Text, out var result) ? result : 0;
+            Plugin.Settings.Pos = pos;
         }
-        
+
         void WidthBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Size = Plugin.Settings.Size with
-            {
-                X = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100)
-            };
+            var size = Plugin.Settings.Size;
+            size.X = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
+            Plugin.Settings.Size = size;
         }
+
         void HeightBoxChanged(MyGuiControlTextbox tb)
         {
-            Plugin.Settings.Size = Plugin.Settings.Size with
-            {
-                Y = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100)
-            };
+            var size = Plugin.Settings.Size;
+            size.Y = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
+            Plugin.Settings.Size = size;
         }
         
         private void RangeBoxChanged(MyGuiControlTextbox tb)
