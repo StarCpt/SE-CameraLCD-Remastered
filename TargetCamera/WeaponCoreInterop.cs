@@ -182,7 +182,7 @@ public static class WeaponCoreInterop
         
         try
         {
-            _updateMethod.Invoke(actualPaintedTarget, new object[] { position, (uint)tick, grid, 0L });
+            _updateMethod.Invoke(actualPaintedTarget, new object[] { position, (uint)tick + 1, grid, 0L });
             return true;
         }
         catch (Exception ex)
