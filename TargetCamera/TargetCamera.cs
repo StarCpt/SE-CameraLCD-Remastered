@@ -236,7 +236,7 @@ namespace SETargetCamera
                     .ToList();
 
                 // If there's at least one hit and it's on your target entity, update painted target
-                if (sortedHits.Count > 0)
+                if (sortedHits.Count > 0 && _cockpit is { CubeGrid: not null })
                 {
                     var closestHit = sortedHits[0];
                     if (_targetEntity != null && closestHit.HitEntity is MyCubeGrid entity &&
