@@ -102,6 +102,7 @@ namespace SETargetCamera
         public static void WorldUnload()
         {
             MyLog.Default.Log(MyLogSeverity.Info,"World unloaded, resetting WC API");
+            WeaponCoreInterop.Invalidate();
             _usesWc = false;
         }
 

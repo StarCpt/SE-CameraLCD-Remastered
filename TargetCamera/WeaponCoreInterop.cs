@@ -35,7 +35,7 @@ namespace SETargetCamera
             if (_initialized) return true;
 
             _wcAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => a.FullName.Contains("sbm_CoreSystems"));
+                .LastOrDefault(a => a.FullName.Contains("sbm_CoreSystems"));
 
             if (_wcAssembly == null)
             {
@@ -266,6 +266,24 @@ namespace SETargetCamera
             }
         }
 
+        public static void Invalidate()
+        {
+            
+            _wcAssembly = null;
+            _sessionType = null;
+            _sessionInstance = null;
+            
+            _playerDummyTargetsField = null;
+            _playerIdField = null;
+            _tickField = null;
+
+            _playerDummyTargetsTryGetValueMethod = null;
+
+            _paintedTargetType = null;
+            _updateMethod = null;
+            
+            _initialized = false;
+        }
     }
 }
 
