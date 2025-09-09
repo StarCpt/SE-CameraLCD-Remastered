@@ -166,7 +166,7 @@ namespace SETargetCamera
                 _withinRange = true;
                 return;
             }
-
+            
 
             _withinRange = false;
             // Creating the border
@@ -179,6 +179,20 @@ namespace SETargetCamera
             var width = _size.X;
             var height = _size.Y;
             
+            
+            
+            // TODO: Extract function
+            DrawRectangle(x, y, width, height, border, color);
+
+
+            if (_targetEntity is MyCubeGrid grid)
+            {
+                //WeaponCoreInterop.UpdatePaintedTarget(grid.PositionComp.WorldAABB.Center, grid); // Doing something with this
+            }
+        }
+
+        private static void DrawRectangle(float x, float y, float width, float height, float border, Color color)
+        {
             RectangleF left = new RectangleF(x - border, y - border, border, height + border * 2 );
             RectangleF right = new RectangleF(x + width, y - border, border, height + border * 2);
             RectangleF bottom = new RectangleF(x - border, y - border, width + border * 2, border);
@@ -188,12 +202,6 @@ namespace SETargetCamera
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref right, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref bottom, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref top, null, color, 0, false, true);
-
-
-            if (_targetEntity is MyCubeGrid grid)
-            {
-                //WeaponCoreInterop.UpdatePaintedTarget(grid.PositionComp.WorldAABB.Center, grid); // Doing something with this
-            }
         }
 
         private static void UpdateScreenSize()
@@ -250,10 +258,6 @@ namespace SETargetCamera
                     {
                         _wcApi.SetAiFocus(_cockpit.CubeGrid, (MyEntity)closestHit.HitEntity);
                     }
-                }
-                else
-                {
-                    
                 }
             }
         }
@@ -443,12 +447,13 @@ namespace SETargetCamera
                     lineThickness,
                     customViewProjectionMatrix: -1,
                     persistentBillboards: null,
-                    blendType: MyBillboard.BlendTypeEnum.AdditiveTop,  // Try Additive to force on top
-                    intensity: 3f  // Boost brightness so it's visible
+                    blendType: MyBillboard.BlendTypeEnum.AdditiveTop,
+                    intensity: 3f
                 );
                 
             }
         }
+        
 
         private static BoundingBoxD GetRenderWorldAABB(MyEntity entity)
         {

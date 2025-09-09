@@ -26,7 +26,7 @@ namespace SETargetCamera
 
         public void Update()
         {
-            
+             
         }
 
         public void OpenConfigDialog()
