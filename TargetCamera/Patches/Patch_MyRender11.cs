@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using HarmonyLib;
-using NLog.Targets;
 using VRage.Utils;
 using VRageRenderAccessor.VRage.Render11.Resources;
 using VRageRenderAccessor.VRage.Render11.Resources.Textures;
