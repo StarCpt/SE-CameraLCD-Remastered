@@ -1,15 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
     <RootNamespace>CameraLCD</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>13</LangVersion>
   </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject />
-    <NuGetAuditMode>all</NuGetAuditMode>
-  </PropertyGroup>
+
   <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>C:\Users\lurkingstar\AppData\Roaming\Pulsar\Libraries\Legacy\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="netstandard" />
     <Reference Include="ProtoBuf.Net">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SpaceEngineers\Bin64\ProtoBuf.Net.dll</HintPath>
@@ -29,9 +32,11 @@
     </Reference>
     <Reference Include="SharpDX">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SpaceEngineers\Bin64\SharpDX.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="SharpDX.Direct3D11">
-      <HintPath>..\..\SE-ProjectEclipse.SSGI\Bin64\SharpDX.Direct3D11.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SpaceEngineers\Bin64\SharpDX.Direct3D11.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="SharpDX.DXGI">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SpaceEngineers\Bin64\SharpDX.DXGI.dll</HintPath>
@@ -82,12 +87,28 @@
       <Private>False</Private>
     </Reference>
   </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+    <Publicize Include="VRage.Render" IncludeCompilerGeneratedMembers="false" />
+    <Publicize Include="VRage.Render11" IncludeCompilerGeneratedMembers="false" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PublicizerClearCacheOnClean>true</PublicizerClearCacheOnClean>
+    <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
+    <AssemblyName>CameraLCD-Remastered</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer">
+      <Version>2.2.1</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SE-VRageRenderAccessorLib\SE-VRageRenderAccessor.csproj" />
-  </ItemGroup>
+
 </Project>
