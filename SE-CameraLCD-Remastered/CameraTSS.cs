@@ -21,7 +21,8 @@ using VRageRender.Messages;
 
 namespace CameraLCD
 {
-    [MyTextSurfaceScript("TSS_CameraDisplay_2", "Camera Display (New)")]
+    // different ID to avoid conflicting with the original plugin
+    [MyTextSurfaceScript("TSS_CameraDisplay_2", "Camera Display")]
     public class CameraTSS : MyTSSCommon
     {
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update100;
