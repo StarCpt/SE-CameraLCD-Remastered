@@ -177,6 +177,10 @@ namespace CameraLCD
             if (renderCamera is null || renderCamera.GetDistanceFromPoint(_lcd.WorldMatrix.Translation) > Plugin.Settings.Range)
                 return false;
 
+            // frustum test
+            if (MyRender11.Environment.Matrices.ViewFrustumClippedD.Contains(_lcd.PositionComp.WorldAABB) is ContainmentType.Disjoint)
+                return false;
+
             if (!TryGetRenderTexture(out IUserGeneratedTexture surfaceRtv))
                 return false;
 
