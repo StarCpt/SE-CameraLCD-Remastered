@@ -207,13 +207,7 @@ namespace CameraLCD
                 GetCameraViewMatrixAndPosition(_camera, out MatrixD cameraViewMatrix, out Vector3D cameraPos);
                 SetCameraViewMatrix(cameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, _camera.GetFov(), cameraPos, 1);
 
-                //MyRender11.RC.ClearRtv(surfaceRtv, new RawColor4(0, 0, 0, 0)); // not needed?
-
-                var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv("CameraLCD_TempRtv", surfaceRtv.Size.X, surfaceRtv.Size.Y, surfaceRtv.Format);
-                MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
-                debugAmbientOcclusion?.Release();
-                
-                CopyReplaceNoAlpha(surfaceRtv, borrowedRtv);
+                CameraViewRenderer.Draw(surfaceRtv);
 
                 // restore camera settings
                 SetRendererState(originalRendererState);
@@ -255,19 +249,6 @@ namespace CameraLCD
                 MyManagers.ModelFactory.OnLoddingSettingChanged();
                 return initial;
             }
-        }
-
-        private static void CopyReplaceNoAlpha(IRtvBindable destination, ISrvBindable source)
-        {
-            MyRender11.RC.SetBlendState(MyBlendStateManager.BlendReplaceNoAlphaChannel);
-
-            MyRender11.RC.SetInputLayout(null);
-            MyRender11.RC.PixelShader.Set(MyCopyToRT.CopyPs);
-
-            MyRender11.RC.SetRtv(destination);
-            MyRender11.RC.SetDepthStencilState(MyDepthStencilStateManager.IgnoreDepthStencil);
-            MyRender11.RC.PixelShader.SetSrv(0, source);
-            MyScreenPass.DrawFullscreenQuad(MyRender11.RC, new MyViewport(destination.Size));
         }
 
         private static void SetCameraViewMatrix(MatrixD viewMatrix, Matrix projMatrix, Matrix projFarMatrix, float fov, Vector3D cameraPosition, int lastMomentUpdateIndex)
