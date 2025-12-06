@@ -295,7 +295,14 @@ namespace CameraLCD
             viewMatrix = camera.GetViewMatrix();
 
             // get camera's render object position since the entity's position may be desynced
-            position = MyIDTracker<MyActor>.FindByID(camera.Render.GetRenderObjectID()).WorldMatrix.Translation;
+            if (camera.Render != null && MyIDTracker<MyActor>.FindByID(camera.Render.GetRenderObjectID()) is MyActor actor)
+            {
+                position = actor.WorldMatrix.Translation;
+            }
+            else
+            {
+                position = camera.WorldMatrix.Translation;
+            }
         }
 
         private bool TryGetRenderTexture(out IUserGeneratedTexture texture)
