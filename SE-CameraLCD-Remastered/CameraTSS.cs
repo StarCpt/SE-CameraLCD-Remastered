@@ -294,21 +294,29 @@ namespace CameraLCD
 
         private static void SetCameraViewMatrix(CameraState state, float farFarPlane, int lastMomentUpdateIndex, bool smooth)
         {
-            MyRenderMessageSetCameraViewMatrix renderMessage = MyRenderProxy.MessagePool.Get<MyRenderMessageSetCameraViewMatrix>(MyRenderMessageEnum.SetCameraViewMatrix);
-            renderMessage.ViewMatrix = state.ViewMatrix;
-            renderMessage.ProjectionMatrix = state.ProjMatrix;
-            renderMessage.ProjectionFarMatrix = state.ProjFarMatrix;
-            renderMessage.FOV = state.Fov;
-            renderMessage.FOVForSkybox = state.Fov;
-            renderMessage.NearPlane = state.NearPlane;
-            renderMessage.FarPlane = state.FarPlane;
-            renderMessage.FarFarPlane = farFarPlane;
-            renderMessage.CameraPosition = state.CameraPos;
-            renderMessage.LastMomentUpdateIndex = lastMomentUpdateIndex;
-            renderMessage.ProjectionOffsetX = state.ProjOffsetX;
-            renderMessage.ProjectionOffsetY = state.ProjOffsetY;
-            renderMessage.Smooth = smooth;
-            MyRender11.SetupCameraMatrices(renderMessage);
+            MyRenderMessageSetCameraViewMatrix renderMessage = null;
+            try
+            {
+                renderMessage = MyRenderProxy.MessagePool.Get<MyRenderMessageSetCameraViewMatrix>(MyRenderMessageEnum.SetCameraViewMatrix);
+                renderMessage.ViewMatrix = state.ViewMatrix;
+                renderMessage.ProjectionMatrix = state.ProjMatrix;
+                renderMessage.ProjectionFarMatrix = state.ProjFarMatrix;
+                renderMessage.FOV = state.Fov;
+                renderMessage.FOVForSkybox = state.Fov;
+                renderMessage.NearPlane = state.NearPlane;
+                renderMessage.FarPlane = state.FarPlane;
+                renderMessage.FarFarPlane = farFarPlane;
+                renderMessage.CameraPosition = state.CameraPos;
+                renderMessage.LastMomentUpdateIndex = lastMomentUpdateIndex;
+                renderMessage.ProjectionOffsetX = state.ProjOffsetX;
+                renderMessage.ProjectionOffsetY = state.ProjOffsetY;
+                renderMessage.Smooth = smooth;
+                MyRender11.SetupCameraMatrices(renderMessage);
+            }
+            finally
+            {
+                renderMessage?.Dispose();
+            }
         }
 
         private static void GetCameraViewMatrixAndPosition(MyCameraBlock camera, out MatrixD viewMatrix, out Vector3D position)
