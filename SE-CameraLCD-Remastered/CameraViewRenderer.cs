@@ -18,12 +18,20 @@ public static class CameraViewRenderer
     private static MyRenderDebugOverrides DebugOverrides => MyRender11.DebugOverrides;
     private static Vector2I ResolutionI => MyRender11.ResolutionI;
 
+    private static void PrepareGameScene()
+    {
+        //MyManagers.EnvironmentProbe.UpdateProbe();
+        MyCommon.UpdateFrameConstants();
+        MyCommon.VoxelMaterialsConstants.FeedGPU();
+        //MyOffscreenRenderer.Render();
+    }
+
     // all profiler calls removed since they don't do anything in the release build of the game
     public static void Draw(IRtvBindable renderTarget)
     {
         IsDrawing = true;
 
-        MyRender11.PrepareGameScene();
+        PrepareGameScene();
         RC.ClearState();
 
         MyManagers.RenderScheduler.Init();
@@ -85,7 +93,7 @@ public static class CameraViewRenderer
         }
 
         RC.ClearRtv(renderTarget, new RawColor4(0, 0, 0, 0)); // don't remove, needed to ensure 0 alpha (TODO: use custom blend state to write 0 alpha)
-        CopyReplaceNoAlpha(postprocessResult.SRgb, renderTarget, new MyViewport(MyRender11.ViewportResolution), Settings.User.DRScaling);
+        CopyReplaceNoAlpha(postprocessResult.SRgb, renderTarget);
 
         postprocessResult.Release();
         MyManagers.Cull.OnFrameEnd();
@@ -93,7 +101,7 @@ public static class CameraViewRenderer
         IsDrawing = false;
     }
 
-    private static void CopyReplaceNoAlpha(ISrvBindable source, IRtvBindable destination, MyViewport viewport, bool shouldStretch)
+    private static void CopyReplaceNoAlpha(ISrvBindable source, IRtvBindable destination)
     {
         MyRender11.RC.SetBlendState(MyBlendStateManager.BlendReplaceNoAlphaChannel);
 

@@ -169,6 +169,35 @@ namespace CameraLCD
             //ResolutionI = ,
         };
 
+        private struct CameraState
+        {
+            public MatrixD ViewMatrix;
+            public MatrixD ProjMatrix;
+            public MatrixD ProjFarMatrix;
+            public float Fov;
+            public float NearPlane;
+            public float FarPlane;
+            public float ProjOffsetX;
+            public float ProjOffsetY;
+            public Vector3D CameraPos;
+
+            public static CameraState From(MyEnvironmentMatrices matrices)
+            {
+                return new CameraState
+                {
+                    ViewMatrix = matrices.ViewD,
+                    ProjMatrix = matrices.OriginalProjection,
+                    ProjFarMatrix = matrices.OriginalProjectionFar,
+                    Fov = matrices.FovH,
+                    NearPlane = matrices.NearClipping,
+                    FarPlane = matrices.FarClipping,
+                    ProjOffsetX = matrices.Projection.M31,
+                    ProjOffsetY = matrices.Projection.M32,
+                    CameraPos = matrices.CameraPosition,
+                };
+            }
+        }
+
         public bool Draw()
         {
             if (!IsActive || _lcdComponent.ContentType != ContentType.SCRIPT)
@@ -197,21 +226,33 @@ namespace CameraLCD
                 ResolutionI = MyRender11.ResolutionI,
             };
 
+            var originalCameraState = CameraState.From(MyRender11.Environment.Matrices);
+
             {
                 // set state for CameraLCD rendering
                 SetRendererState(_rendererStateForCameraLCD with
                 {
                     ViewportResolution = surfaceRtv.Size,
                     ResolutionI = surfaceRtv.Size,
+                    DrawBillboards = true,
                 });
                 GetCameraViewMatrixAndPosition(_camera, out MatrixD cameraViewMatrix, out Vector3D cameraPos);
-                SetCameraViewMatrix(cameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, _camera.GetFov(), cameraPos, 1);
+                SetCameraViewMatrix(originalCameraState with
+                {
+                    ViewMatrix = cameraViewMatrix,
+                    Fov = _camera.GetFov(),
+                    NearPlane = renderCamera.NearPlaneDistance,
+                    FarPlane = renderCamera.FarPlaneDistance,
+                    CameraPos = cameraPos,
+                    ProjOffsetX = 0,
+                    ProjOffsetY = 0,
+                }, renderCamera.FarFarPlaneDistance, 1, false);
 
                 CameraViewRenderer.Draw(surfaceRtv);
 
                 // restore camera settings
                 SetRendererState(originalRendererState);
-                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.Position, 0);
+                SetCameraViewMatrix(originalCameraState, renderCamera.FarFarPlaneDistance, 0, false);
             }
 
             MyRender11.DeviceInstance.ImmediateContext1.GenerateMips(surfaceRtv.Srv);
@@ -251,23 +292,22 @@ namespace CameraLCD
             }
         }
 
-        private static void SetCameraViewMatrix(MatrixD viewMatrix, Matrix projMatrix, Matrix projFarMatrix, float fov, Vector3D cameraPosition, int lastMomentUpdateIndex)
+        private static void SetCameraViewMatrix(CameraState state, float farFarPlane, int lastMomentUpdateIndex, bool smooth)
         {
-            MyCamera renderCamera = MySector.MainCamera;
             MyRenderMessageSetCameraViewMatrix renderMessage = MyRenderProxy.MessagePool.Get<MyRenderMessageSetCameraViewMatrix>(MyRenderMessageEnum.SetCameraViewMatrix);
-            renderMessage.ViewMatrix = viewMatrix;
-            renderMessage.ProjectionMatrix = projMatrix;
-            renderMessage.ProjectionFarMatrix = projFarMatrix;
-            renderMessage.FOV = fov;
-            renderMessage.FOVForSkybox = fov;
-            renderMessage.NearPlane = renderCamera.NearPlaneDistance;
-            renderMessage.FarPlane = renderCamera.FarPlaneDistance;
-            renderMessage.FarFarPlane = renderCamera.FarFarPlaneDistance;
-            renderMessage.CameraPosition = cameraPosition;
+            renderMessage.ViewMatrix = state.ViewMatrix;
+            renderMessage.ProjectionMatrix = state.ProjMatrix;
+            renderMessage.ProjectionFarMatrix = state.ProjFarMatrix;
+            renderMessage.FOV = state.Fov;
+            renderMessage.FOVForSkybox = state.Fov;
+            renderMessage.NearPlane = state.NearPlane;
+            renderMessage.FarPlane = state.FarPlane;
+            renderMessage.FarFarPlane = farFarPlane;
+            renderMessage.CameraPosition = state.CameraPos;
             renderMessage.LastMomentUpdateIndex = lastMomentUpdateIndex;
-            renderMessage.ProjectionOffsetX = 0;
-            renderMessage.ProjectionOffsetY = 0;
-            renderMessage.Smooth = false;
+            renderMessage.ProjectionOffsetX = state.ProjOffsetX;
+            renderMessage.ProjectionOffsetY = state.ProjOffsetY;
+            renderMessage.Smooth = smooth;
             MyRender11.SetupCameraMatrices(renderMessage);
         }
 

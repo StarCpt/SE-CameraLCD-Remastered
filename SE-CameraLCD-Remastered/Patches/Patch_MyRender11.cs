@@ -7,8 +7,8 @@ namespace CameraLCD.Patches
     public static class Patch_MyRender11
     {
         [HarmonyPatch(typeof(MyRender11), nameof(MyRender11.DrawGameScene))]
-        [HarmonyPostfix]
-        public static void MyRender11_DrawGameScene_Postfix()
+        [HarmonyPrefix]
+        public static void MyRender11_DrawGameScene_Prefix()
         {
             if (!Plugin.Settings.Enabled)
                 return;
