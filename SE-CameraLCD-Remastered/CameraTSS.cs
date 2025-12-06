@@ -160,7 +160,7 @@ namespace CameraLCD
         private static readonly RendererState _rendererStateForCameraLCD = new RendererState
         {
             Lodding = false,
-            DrawBillboards = false,
+            DrawBillboards = true,
             EyeAdaption = true, // when turned off, makes the image too bright when surface is lit by sunlight
             Flares = false,
             SSAO = false,
