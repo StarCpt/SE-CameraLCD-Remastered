@@ -10,6 +10,8 @@ namespace CameraLCD;
 
 public static class CameraViewRenderer
 {
+    public static bool IsDrawing { get; private set; }
+
     private static MyRenderContext RC => MyRender11.RC;
     private static ref MyRenderSettings Settings => ref MyRender11.Settings;
     private static ref MyPostprocessSettings Postprocess => ref MyRender11.Postprocess;
@@ -19,6 +21,8 @@ public static class CameraViewRenderer
     // all profiler calls removed since they don't do anything in the release build of the game
     public static void Draw(IRtvBindable renderTarget)
     {
+        IsDrawing = true;
+
         MyRender11.PrepareGameScene();
         RC.ClearState();
 
@@ -85,6 +89,8 @@ public static class CameraViewRenderer
 
         postprocessResult.Release();
         MyManagers.Cull.OnFrameEnd();
+
+        IsDrawing = false;
     }
 
     private static void CopyReplaceNoAlpha(ISrvBindable source, IRtvBindable destination, MyViewport viewport, bool shouldStretch)
