@@ -31,6 +31,7 @@ namespace CameraLCD
 
         private readonly MyTerminalBlock _lcd;
         private readonly MyTextPanelComponent _lcdComponent;
+        private readonly int _surfaceId;
 
         private string _customData;
         private MyCameraBlock _camera;
@@ -40,6 +41,7 @@ namespace CameraLCD
         {
             _lcd = (MyTerminalBlock)block;
             _lcdComponent = (MyTextPanelComponent)surface;
+            _surfaceId = GetSurfaceId(_lcd, _lcdComponent);
             Id = new DisplayId(_lcd.EntityId, _lcdComponent.Area);
 
             _lcd.CustomDataChanged += OnCustomDataChanged; // doesn't work if the change occurred locally
@@ -47,6 +49,18 @@ namespace CameraLCD
             _lcd.CubeGridChanged += _ => CubeGridChanged();
             _lcd.OnMarkForClose += Lcd_OnMarkForClose;
             OnCustomDataChanged(_lcd);
+        }
+
+        private static int GetSurfaceId(MyTerminalBlock block, MyTextPanelComponent surface)
+        {
+            if (block is MyTextPanel panel)
+            {
+                return 0;
+            }
+            else
+            {
+                return surface.Area;
+            }
         }
 
         public override void Run()
@@ -135,7 +149,7 @@ namespace CameraLCD
             if (String.IsNullOrWhiteSpace(customData))
                 return null;
 
-            string prefix = _lcdComponent.Area + ":";
+            string prefix = _surfaceId + ":";
             using (StringReader reader = new StringReader(customData))
             {
                 string line = reader.ReadLine();
@@ -215,7 +229,7 @@ namespace CameraLCD
 
         public bool Draw()
         {
-            if (!IsActive || _lcdComponent.ContentType != ContentType.SCRIPT)
+            if (!IsActive || _lcdComponent.ContentType != ContentType.SCRIPT || !_lcdComponent.m_textureGenerated)
                 return false;
 
             MyCamera renderCamera = MySector.MainCamera;

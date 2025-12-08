@@ -5,12 +5,12 @@ namespace CameraLCD
     public struct DisplayId : IEquatable<DisplayId>
     {
         public long EntityId;
-        public int SurfaceIndex;
+        public int Area;
 
-        public DisplayId(long entityId, int surfaceIndex)
+        public DisplayId(long entityId, int Area)
         {
             EntityId = entityId;
-            SurfaceIndex = surfaceIndex;
+            this.Area = Area;
         }
 
         public override bool Equals(object obj)
@@ -20,14 +20,14 @@ namespace CameraLCD
 
         public bool Equals(DisplayId other)
         {
-            return EntityId == other.EntityId && SurfaceIndex == other.SurfaceIndex;
+            return EntityId == other.EntityId && Area == other.Area;
         }
 
         public override int GetHashCode()
         {
             int hashCode = -1120748461;
             hashCode = hashCode * -1521134295 + EntityId.GetHashCode();
-            hashCode = hashCode * -1521134295 + SurfaceIndex.GetHashCode();
+            hashCode = hashCode * -1521134295 + Area.GetHashCode();
             return hashCode;
         }
 
@@ -43,7 +43,7 @@ namespace CameraLCD
 
         public override string ToString()
         {
-            return "{EntityId: " + EntityId + ", Area: " + SurfaceIndex + "}";
+            return "{EntityId: " + EntityId + ", Area: " + Area + "}";
         }
     }
 }
