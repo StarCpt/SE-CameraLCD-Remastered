@@ -153,21 +153,32 @@ namespace CameraLCD
             public bool Flares;
             public bool SSAO;
             public bool Bloom;
+            public bool ShadowCameraFrozen;
             public Vector2I ViewportResolution;
             public Vector2I ResolutionI;
-        }
 
-        private static readonly RendererState _rendererStateForCameraLCD = new RendererState
-        {
-            Lodding = false,
-            DrawBillboards = true,
-            EyeAdaption = true, // when turned off, makes the image too bright when surface is lit by sunlight
-            Flares = false,
-            SSAO = false,
-            Bloom = false,
-            //ViewportResolution = ,
-            //ResolutionI = ,
-        };
+            private static readonly RendererState _cameraViewState = new()
+            {
+                Lodding = false,
+                DrawBillboards = true,
+                EyeAdaption = true, // when turned off, makes the image too bright when surface is lit by sunlight
+                Flares = false,
+                SSAO = false,
+                Bloom = false,
+                ShadowCameraFrozen = true, // don't update shadow camera as it causes flickering for distant shadows
+                //ViewportResolution = ,
+                //ResolutionI = ,
+            };
+
+            public static RendererState GetCameraViewState(Vector2I surfaceResolution)
+            {
+                return _cameraViewState with
+                {
+                    ViewportResolution = surfaceResolution,
+                    ResolutionI = surfaceResolution,
+                };
+            }
+        }
 
         private struct CameraState
         {
@@ -222,6 +233,7 @@ namespace CameraLCD
                 Flares = MyRender11.DebugOverrides.Flares,
                 SSAO = MyRender11.DebugOverrides.SSAO,
                 Bloom = MyRender11.DebugOverrides.Bloom,
+                ShadowCameraFrozen = MyRender11.Settings.ShadowCameraFrozen,
                 ViewportResolution = MyRender11.ViewportResolution,
                 ResolutionI = MyRender11.ResolutionI,
             };
@@ -230,12 +242,7 @@ namespace CameraLCD
 
             {
                 // set state for CameraLCD rendering
-                SetRendererState(_rendererStateForCameraLCD with
-                {
-                    ViewportResolution = surfaceRtv.Size,
-                    ResolutionI = surfaceRtv.Size,
-                    DrawBillboards = true,
-                });
+                SetRendererState(RendererState.GetCameraViewState(surfaceRtv.Size));
                 GetCameraViewMatrixAndPosition(_camera, out MatrixD cameraViewMatrix, out Vector3D cameraPos);
                 SetCameraViewMatrix(originalCameraState with
                 {
@@ -268,6 +275,7 @@ namespace CameraLCD
             MyRender11.DebugOverrides.Flares = state.Flares;
             MyRender11.DebugOverrides.SSAO = state.SSAO;
             MyRender11.DebugOverrides.Bloom = state.Bloom;
+            MyRender11.Settings.ShadowCameraFrozen = state.ShadowCameraFrozen;
 
             MyRender11.ViewportResolution = state.ViewportResolution;
             MyRender11.m_resolution = state.ResolutionI;
