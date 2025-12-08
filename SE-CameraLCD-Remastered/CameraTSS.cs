@@ -32,6 +32,7 @@ namespace CameraLCD
         private readonly MyTerminalBlock _lcd;
         private readonly MyTextPanelComponent _lcdComponent;
 
+        private string _customData;
         private MyCameraBlock _camera;
 
         public CameraTSS(IMyTextSurface surface, IMyCubeBlock block, Vector2 size)
@@ -41,7 +42,7 @@ namespace CameraLCD
             _lcdComponent = (MyTextPanelComponent)surface;
             Id = new DisplayId(_lcd.EntityId, _lcdComponent.Area);
 
-            _lcd.CustomDataChanged += OnCustomDataChanged;
+            _lcd.CustomDataChanged += OnCustomDataChanged; // doesn't work if the change occurred locally
             _lcd.IsWorkingChanged += _ => UpdateIsActive();
             _lcd.CubeGridChanged += _ => CubeGridChanged();
             _lcd.OnMarkForClose += Lcd_OnMarkForClose;
@@ -52,7 +53,8 @@ namespace CameraLCD
         {
             base.Run();
 
-            if (_camera == null)
+            bool customDataChanged = _customData != _lcd.CustomData;
+            if (_camera == null || customDataChanged)
             {
                 OnCustomDataChanged(_lcd);
             }
@@ -102,6 +104,8 @@ namespace CameraLCD
 
         private void OnCustomDataChanged(MyTerminalBlock lcd)
         {
+            _customData = lcd.CustomData;
+
             string cameraBlockName = GetCameraName(lcd.CustomData);
             if (String.IsNullOrWhiteSpace(cameraBlockName))
             {
