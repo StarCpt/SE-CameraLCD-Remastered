@@ -23,9 +23,11 @@ using VRageRender.Messages;
 namespace CameraLCD
 {
     // different ID to avoid conflicting with the original plugin
-    [MyTextSurfaceScript("TSS_CameraDisplay_2", "Camera Display")]
+    [MyTextSurfaceScript(SCRIPT_ID, "Camera Display")]
     public class CameraTSS : MyTSSCommon
     {
+        public const string SCRIPT_ID = "TSS_CameraDisplay_2";
+
         public override ScriptUpdate NeedsUpdate => ScriptUpdate.Update100;
         public DisplayId Id { get; }
         public bool IsActive { get; private set; } = false;
@@ -67,6 +69,9 @@ namespace CameraLCD
         public override void Run()
         {
             base.Run();
+
+            if (_lcdComponent.Script != SCRIPT_ID)
+                return;
 
             bool customDataChanged = _customData != _lcd.CustomData;
             if (_camera == null || customDataChanged)
@@ -276,7 +281,7 @@ namespace CameraLCD
 
         public bool Draw()
         {
-            if (!IsActive || _lcdComponent.ContentType != ContentType.SCRIPT || !_lcdComponent.m_textureGenerated)
+            if (!IsActive || !_lcdComponent.m_textureGenerated || _lcdComponent.ContentType != ContentType.SCRIPT || _lcdComponent.Script != SCRIPT_ID)
                 return false;
 
             MyCamera renderCamera = MySector.MainCamera;
