@@ -5,6 +5,7 @@ using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.Game.World;
 using Sandbox.ModAPI.Ingame;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -44,16 +45,16 @@ namespace CameraLCD
             _surfaceId = GetSurfaceId(_lcd, _lcdComponent);
             Id = new DisplayId(_lcd.EntityId, _lcdComponent.Area);
 
-            _lcd.CustomDataChanged += OnCustomDataChanged; // doesn't work if the change occurred locally
+            _lcd.CustomDataChanged += _ => UpdateSettings(); // doesn't work if the change occurred locally
             _lcd.IsWorkingChanged += _ => UpdateIsActive();
             _lcd.CubeGridChanged += _ => CubeGridChanged();
             _lcd.OnMarkForClose += Lcd_OnMarkForClose;
-            OnCustomDataChanged(_lcd);
+            UpdateSettings();
         }
 
         private static int GetSurfaceId(MyTerminalBlock block, MyTextPanelComponent surface)
         {
-            if (block is MyTextPanel panel)
+            if (block is MyTextPanel)
             {
                 return 0;
             }
@@ -70,7 +71,7 @@ namespace CameraLCD
             bool customDataChanged = _customData != _lcd.CustomData;
             if (_camera == null || customDataChanged)
             {
-                OnCustomDataChanged(_lcd);
+                UpdateSettings();
             }
         }
 
@@ -82,7 +83,7 @@ namespace CameraLCD
             _camera.OnClose += Camera_OnClose;
             _camera.IsWorkingChanged += _ => UpdateIsActive();
             _camera.CubeGridChanged += _ => CubeGridChanged();
-            _camera.CustomNameChanged += _ => OnCustomDataChanged(_lcd);
+            _camera.CustomNameChanged += _ => UpdateSettings();
             UpdateIsActive();
             CameraLcdManager.AddDisplay(Id, this);
         }
@@ -96,8 +97,9 @@ namespace CameraLCD
                 _camera.OnClose -= Camera_OnClose;
                 _camera.IsWorkingChanged -= _ => UpdateIsActive();
                 _camera.CubeGridChanged -= _ => CubeGridChanged();
-                _camera.CustomNameChanged -= _ => OnCustomDataChanged(_lcd);
+                _camera.CustomNameChanged -= _ => UpdateSettings();
                 _camera = null;
+                UpdateIsActive();
             }
         }
 
@@ -113,34 +115,77 @@ namespace CameraLCD
 
         private void UpdateIsActive()
         {
-            IsActive = _camera != null && _lcd.IsWorking && _camera.IsWorking;
+            IsActive = _camera != null && _camera.IsWorking && _lcd.IsWorking;
         }
 
-        private void OnCustomDataChanged(MyTerminalBlock lcd)
+        private void UpdateSettings()
         {
-            _customData = lcd.CustomData;
+            _customData = _lcd.CustomData;
 
-            string cameraBlockName = GetCameraName(lcd.CustomData);
-            if (String.IsNullOrWhiteSpace(cameraBlockName))
+            if (!TryFindCamera(_customData, out MyCameraBlock newCamera))
             {
                 UnregisterCamera();
                 return;
             }
 
-            if (_camera != null && _camera.CustomName.EqualsStrFast(cameraBlockName))
+            if (_camera == newCamera)
             {
                 return;
             }
-
-            MyCameraBlock camera = (MyCameraBlock)lcd.CubeGrid.GridSystems.TerminalSystem.Blocks.FirstOrDefault(i => i is MyCameraBlock && i.CustomName.EqualsStrFast(cameraBlockName));
             
-            if (camera != null)
+            if (_camera is not null)
             {
-                RegisterCamera(camera);
-            }
-            else
-            {
+                // unregister current camera if changed (and not null)
                 UnregisterCamera();
+            }
+
+            // is new or changed
+            RegisterCamera(newCamera);
+        }
+
+        public bool TryFindCamera(string customData, out MyCameraBlock camera)
+        {
+            camera = null;
+
+            if (string.IsNullOrWhiteSpace(customData))
+            {
+                return false;
+            }
+
+            List<MyCameraBlock> gridCameras = _lcd.CubeGrid.GridSystems.CameraSystem.m_cameras;
+            string cameraName = GetCameraName(customData);
+            if (!string.IsNullOrWhiteSpace(cameraName))
+            {
+                camera = TryFindMatch(gridCameras, cameraName);
+                return camera != null;
+            }
+            else // brute force search
+            {
+                using StringReader sr = new StringReader(customData);
+                while (sr.ReadLine() is string line)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
+
+                    camera = TryFindMatch(gridCameras, line);
+                    if (camera != null)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+
+            static MyCameraBlock? TryFindMatch(List<MyCameraBlock> cameras, string customName)
+            {
+                foreach (var cameraBlock in cameras)
+                {
+                    if (cameraBlock.CustomName.EqualsStrFast(customName))
+                    {
+                        return cameraBlock;
+                    }
+                }
+                return null;
             }
         }
 
@@ -152,15 +197,17 @@ namespace CameraLCD
             string prefix = _surfaceId + ":";
             using (StringReader reader = new StringReader(customData))
             {
-                string line = reader.ReadLine();
-                while (line != null)
+                while (reader.ReadLine() is string line)
                 {
                     if (line.StartsWith(prefix) && line.Length > prefix.Length)
-                        return line.Substring(prefix.Length);
-                    line = reader.ReadLine();
+                    {
+                        string name = line.Substring(prefix.Length);
+                        if (!string.IsNullOrWhiteSpace(name))
+                            return name;
+                    }
                 }
             }
-            return customData;
+            return null;
         }
 
         private struct RendererState
@@ -383,7 +430,7 @@ namespace CameraLCD
             base.Dispose();
 
             UnregisterCamera();
-            _lcd.CustomDataChanged -= OnCustomDataChanged;
+            _lcd.CustomDataChanged -= _ => UpdateSettings();
             _lcd.IsWorkingChanged -= _ => UpdateIsActive();
             _lcd.CubeGridChanged -= _ => CubeGridChanged();
             _lcd.OnMarkForClose -= Lcd_OnMarkForClose;
