@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI.Ingame;
@@ -18,6 +19,7 @@ using VRage.Render11.Common;
 using VRage.Render11.Resources;
 using VRageMath;
 using VRageRender;
+using VRageRender.Import;
 using VRageRender.Messages;
 
 namespace CameraLCD
@@ -399,16 +401,46 @@ namespace CameraLCD
 
         private static void GetCameraViewMatrixAndPosition(MyCameraBlock camera, out MatrixD viewMatrix, out Vector3D position)
         {
-            viewMatrix = camera.GetViewMatrix();
+            // same as MyCameraBlock.GetViewMatrix() but using a custom matrix
 
-            // get camera's render object position since the entity's position may be desynced
-            if (camera.Render != null && MyIDTracker<MyActor>.FindByID(camera.Render.GetRenderObjectID()) is MyActor actor)
+            // use camera's render object matrix (if available) since the entity's simulation matrix may be desynced
+            MatrixD matrix = TryGetActor(camera, out MyActor actor) ? actor.WorldMatrix : camera.WorldMatrix;
+            matrix.Translation += matrix.Forward * 0.2;
+            
+            if (camera.Model.Dummies != null)
             {
-                position = actor.WorldMatrix.Translation;
+                foreach (KeyValuePair<string, MyModelDummy> dummy in camera.Model.Dummies)
+                {
+                    if (dummy.Value.Name == "camera")
+                    {
+                        Quaternion rotation = Quaternion.CreateFromForwardUp(matrix.Forward, matrix.Up);
+                        matrix.Translation += MatrixD.Transform(dummy.Value.Matrix, rotation).Translation;
+                        break;
+                    }
+                }
             }
-            else
+
+            position = matrix.Translation;
+            MatrixD.Invert(ref matrix, out viewMatrix);
+        }
+
+        private static bool TryGetActor(MyEntity entity, out MyActor actor)
+        {
+            actor = null;
+            if (entity?.Render is not MyRenderComponentBase renderComp)
             {
-                position = camera.WorldMatrix.Translation;
+                return false;
+            }
+
+            try
+            {
+                uint actorId = renderComp.GetRenderObjectID();
+                actor = actorId != uint.MaxValue ? MyIDTracker<MyActor>.FindByID(actorId) : null;
+                return actor != null;
+            }
+            catch
+            {
+                return false;
             }
         }
 
