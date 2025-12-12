@@ -1,7 +1,12 @@
 ﻿using SharpDX.Mathematics.Interop;
+using System.Threading;
+using VRage.Render.Scene;
 using VRage.Render11.Common;
 using VRage.Render11.RenderContext;
 using VRage.Render11.Resources;
+using VRage.Render11.Scene;
+using VRage.Render11.Scene.Components;
+using VRage.Utils;
 using VRageMath;
 using VRageRender;
 using VRageRender.Messages;
@@ -26,10 +31,53 @@ public static class CameraViewRenderer
         //MyOffscreenRenderer.Render();
     }
 
+    // controlled character head is hidden in 1st person view so that the player isn't looking at the insides of the character's face
+    // so we 'fix' it for camera views by forcibly making it visible again
+    // for some reason not returning the visibility to its original state is fine.
+    // also if we do set the vis state back it can make the character head invisible when switching back to 3rd person view
+    // we provide a toggle for the fix in the settings in case it breaks modded characters or something
+    private static void FixFirstPersonCharacterHead()
+    {
+        // FPV state is changed on simulation thread but we want to read it from render thread so we use a boxed struct set from Plugin.Update()
+        var firstPersonInfo = Volatile.Read(ref Plugin.FirstPersonCharacter); // null if not in FPV
+        if (firstPersonInfo != null
+            && MyIDTracker<MyActor>.FindByID(firstPersonInfo.BoxedValue.CharacterActorId) is MyActor actor
+            && actor.GetRenderable() is MyRenderableComponent renderable)
+        {
+            string[] disabledMaterials = firstPersonInfo.BoxedValue.MaterialsDisabledInFirst;
+            var lods = renderable.Lods;
+            var mesh = renderable.Mesh;
+            MyRenderableProxyFlags flagsToAdd = MyProxiesFactory.GetRenderableProxyFlags(RenderFlags.Visible);
+            MyRenderableProxyFlags flagsToRemove = MyProxiesFactory.GetRenderableProxyFlags(0);
+            foreach (string materialName in disabledMaterials)
+            {
+                MyStringId material = MyStringId.GetOrCompute(materialName);
+                for (int j = 0; j < lods.Length; j++)
+                {
+                    MyRenderLod myRenderLod = lods[j];
+                    for (int k = 0; k < myRenderLod.RenderableProxies.Length; k++)
+                    {
+                        MyRenderableProxy myRenderableProxy = myRenderLod.RenderableProxies[k];
+                        if (MyMeshes.GetMeshPart(mesh, j, myRenderableProxy.PartIndex).Info.Material.Info.Name == material)
+                        {
+                            myRenderableProxy.Flags |= flagsToAdd;
+                            myRenderableProxy.Flags &= ~flagsToRemove;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // all profiler calls removed since they don't do anything in the release build of the game
     public static void Draw(IRtvBindable renderTarget)
     {
         IsDrawing = true;
+
+        if (Plugin.Settings.HeadFix)
+        {
+            FixFirstPersonCharacterHead();
+        }
 
         PrepareGameScene();
         RC.ClearState();

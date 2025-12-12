@@ -49,7 +49,7 @@ namespace CameraLCD.Gui
 
             MyGuiControlSlider ratioSlider = new MyGuiControlSlider(pos, 2, 30, 0.2f, settings.Ratio, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, intValue: true);
             ratioSlider.SetToolTip("Render camera view every nth frame.");
-            ratioSlider.ValueChanged += OnRenderRatioChanged;
+            ratioSlider.ValueChanged += RenderRatioChanged;
             Controls.Add(ratioSlider);
             AddCaption(ratioSlider, "Render ratio");
             AddCustomSliderLabel(ratioSlider, val => $"{val}x");
@@ -63,16 +63,22 @@ namespace CameraLCD.Gui
             AddCustomSliderLabel(rangeSlider, val => $"{val}m");
             pos.Y += rangeSlider.Size.Y + space;
 
-            //MyGuiControlCheckbox headFixCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.HeadFix, toolTip: "Fix to render your own head in camera view", originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            //headFixCheckbox.IsCheckedChanged += IsHeadfixCheckedChanged;
-            //Controls.Add(headFixCheckbox);
-            //AddCaption(headFixCheckbox, "Head fix");
-            //pos.Y += headFixCheckbox.Size.Y + space;
+            MyGuiControlCheckbox headFixCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.HeadFix, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
+            headFixCheckbox.SetToolTip("Fix invisible character head on camera lcd in 1st person view.\nMay cause issues with modded characters.");
+            headFixCheckbox.IsCheckedChanged += IsHeadfixCheckedChanged;
+            Controls.Add(headFixCheckbox);
+            AddCaption(headFixCheckbox, "Head fix");
+            pos.Y += headFixCheckbox.Size.Y + space;
 
             // Bottom
             pos = new Vector2(0, (m_size.Value.Y / 2) - space);
             MyGuiControlButton closeButton = new MyGuiControlButton(pos, text: MyTexts.Get(MyCommonTexts.Close), originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM, onButtonClick: OnCloseClicked);
             Controls.Add(closeButton);
+        }
+
+        private void AddCaption(MyGuiControlBase control, string caption)
+        {
+            Controls.Add(new MyGuiControlLabel(control.Position + new Vector2(-space, control.Size.Y / 2), text: caption, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER));
         }
 
         private void AddCustomSliderLabel(MyGuiControlSlider slider, Func<float, string> valueToTextFunc)
@@ -97,29 +103,9 @@ namespace CameraLCD.Gui
             Plugin.Settings.Save();
         }
 
-        private void AddCaption(MyGuiControlBase control, string caption)
-        {
-            Controls.Add(new MyGuiControlLabel(control.Position + new Vector2(-space, control.Size.Y / 2), text: caption, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER));
-        }
-
-        void IsEnabledCheckedChanged(MyGuiControlCheckbox cb)
-        {
-            Plugin.Settings.Enabled = cb.IsChecked;
-        }
-
-        private void OnRenderRatioChanged(MyGuiControlSlider slider)
-        {
-            Plugin.Settings.Ratio = (int)slider.Value;
-        }
-
-        void RangeValueChanged(MyGuiControlSlider slider)
-        {
-            Plugin.Settings.Range = (int)slider.Value;
-        }
-
-        void IsHeadfixCheckedChanged(MyGuiControlCheckbox cb)
-        {
-            Plugin.Settings.HeadFix = cb.IsChecked;
-        }
+        void IsEnabledCheckedChanged(MyGuiControlCheckbox cb) => Plugin.Settings.Enabled = cb.IsChecked;
+        void RenderRatioChanged(MyGuiControlSlider slider) => Plugin.Settings.Ratio = (int)slider.Value;
+        void RangeValueChanged(MyGuiControlSlider slider) => Plugin.Settings.Range = (int)slider.Value;
+        void IsHeadfixCheckedChanged(MyGuiControlCheckbox cb) => Plugin.Settings.HeadFix = cb.IsChecked;
     }
 }
