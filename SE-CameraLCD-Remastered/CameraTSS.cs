@@ -334,7 +334,7 @@ namespace CameraLCD
                 SetCameraViewMatrix(originalCameraState, renderCamera.FarFarPlaneDistance, 0, false);
             }
 
-            MyRender11.DeviceInstance.ImmediateContext1.GenerateMips(surfaceRtv.Srv);
+            MyRender11.RC.GenerateMips(surfaceRtv);
 
             return true;
         }

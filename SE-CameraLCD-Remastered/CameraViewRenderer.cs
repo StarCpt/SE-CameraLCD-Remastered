@@ -16,6 +16,7 @@ namespace CameraLCD;
 public static class CameraViewRenderer
 {
     public static bool IsDrawing { get; private set; }
+    public static bool FixOcclusion = false;
 
     private static MyRenderContext RC => MyRender11.RC;
     private static ref MyRenderSettings Settings => ref MyRender11.Settings;
@@ -73,6 +74,7 @@ public static class CameraViewRenderer
     public static void Draw(IRtvBindable renderTarget)
     {
         IsDrawing = true;
+        FixOcclusion = Plugin.Settings.OcclusionFix;
 
         if (Plugin.Settings.HeadFix)
         {
@@ -147,6 +149,7 @@ public static class CameraViewRenderer
         MyManagers.Cull.OnFrameEnd();
 
         IsDrawing = false;
+        FixOcclusion = false;
     }
 
     private static void CopyReplaceNoAlpha(ISrvBindable source, IRtvBindable destination)
