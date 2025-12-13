@@ -159,12 +159,10 @@ namespace CameraLCD
                 return false;
             }
 
-            List<MyCameraBlock> gridCameras = _lcd.CubeGrid.GridSystems.CameraSystem.m_cameras;
             string cameraName = GetCameraName(customData);
             if (!string.IsNullOrWhiteSpace(cameraName))
             {
-                camera = TryFindMatch(gridCameras, cameraName);
-                return camera != null;
+                return TryFindMechanicallyConnectedCamera(_lcd.CubeGrid, cameraName, out camera);
             }
             else // brute force search
             {
@@ -174,28 +172,51 @@ namespace CameraLCD
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
 
-                    camera = TryFindMatch(gridCameras, line);
-                    if (camera != null)
+                    if (TryFindMechanicallyConnectedCamera(_lcd.CubeGrid, line, out camera))
                     {
                         return true;
                     }
                 }
             }
             return false;
+        }
+#nullable enable
+        private static bool TryFindMechanicallyConnectedCamera(MyCubeGrid grid, string customName, out MyCameraBlock? result)
+        {
+            if (TryFindMatch(grid.GetAllCameraBlocks(), customName, out result))
+            {
+                return true;
+            }
 
-            static MyCameraBlock? TryFindMatch(List<MyCameraBlock> cameras, string customName)
+            var mechanicalGroup = MyCubeGridGroups.Static.Mechanical.GetGroup(grid);
+            if (mechanicalGroup != null)
+            {
+                foreach (var node in mechanicalGroup.Nodes)
+                {
+                    if (node.NodeData != grid && TryFindMatch(node.NodeData.GetAllCameraBlocks(), customName, out result))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+
+            static bool TryFindMatch(List<MyCameraBlock> cameras, string customName, out MyCameraBlock? result)
             {
                 foreach (var cameraBlock in cameras)
                 {
                     if (cameraBlock.CustomName.EqualsStrFast(customName))
                     {
-                        return cameraBlock;
+                        result = cameraBlock;
+                        return true;
                     }
                 }
-                return null;
+                result = null;
+                return false;
             }
         }
-
+#nullable disable
         private string GetCameraName(string customData)
         {
             if (String.IsNullOrWhiteSpace(customData))
