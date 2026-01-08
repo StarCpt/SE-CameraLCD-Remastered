@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using Microsoft.CodeAnalysis;
+using Sandbox;
 using Sandbox.Game.Components;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
@@ -20,6 +21,9 @@ using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Game.Utils;
+using VRage.Input;
+using VRage.Render.Scene;
+using VRage.Render11.Common;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
@@ -29,12 +33,6 @@ using VRageRender.Messages;
 using SETargetCamera;
 using SETargetCamera.Patches;
 using CoreSystems.Api;
-using Sandbox;
-using VRage.Input;
-using VRage.Render.Scene;
-using VRageRenderAccessor.VRage.Render11.Common;
-using VRageRenderAccessor.VRage.Render11.Resources.Textures;
-using VRageRenderAccessor.VRageRender;
 
 namespace SETargetCamera
 {
@@ -365,7 +363,7 @@ namespace SETargetCamera
                 Vector2I size = (Vector2I)_size;
                 
                 MyRender11.ViewportResolution = size;
-                MyRender11.ResolutionI = size;
+                MyRender11.m_resolution = size;
                 SetCameraViewMatrix(_targetCameraViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, _fov, _fov, targetCameraNearPlane, (float)dist * 2, _virtualCameraPos, 1);
 
                 // Draw the game to the screen
@@ -387,7 +385,7 @@ namespace SETargetCamera
 
                 // Restore camera position
                 MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
-                MyRender11.ResolutionI = (Vector2I)ogResolutionI;
+                MyRender11.m_resolution = (Vector2I)ogResolutionI;
                 SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.Position, 0);
 
                 #region restore post-processing and lod settings
@@ -413,7 +411,7 @@ namespace SETargetCamera
                     if (ogBloom != null) debugOverrides.Bloom = (bool)ogBloom;
                     if (ogResolutionI != null)
                     {
-                        MyRender11.ResolutionI = (Vector2I)ogResolutionI;
+                        MyRender11.m_resolution = (Vector2I)ogResolutionI;
                         MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
                     }
                 }
