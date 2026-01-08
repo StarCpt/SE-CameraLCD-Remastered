@@ -9,7 +9,7 @@ namespace SETargetCamera
 {
     public class TargetCameraSettings
     {
-        private const string fileName = "CameraLCDSettings.xml";
+        private const string fileName = "TargetCameraSettings.xml";
         private static string FilePath => Path.Combine(MyFileSystem.UserDataPath, "Storage", fileName);
 
         protected TargetCameraSettings()
