@@ -285,6 +285,7 @@ namespace SETargetCamera
             bool? ogBloom = null;
             Vector2I? ogResolutionI = null;
             MyRenderDebugOverrides debugOverrides = null;
+            bool? ogShadowCameraFrozen = null;
             try
             {
                 MyRender11.Settings.SkipGlobalROWMUpdate = true;
@@ -321,6 +322,7 @@ namespace SETargetCamera
                 debugOverrides.SSAO = false;
                 debugOverrides.Bloom = false;
                 float ogFarPLane = renderCamera.FarPlaneDistance;
+                ogShadowCameraFrozen = MyRender11.Settings.ShadowCameraFrozen;
                 #endregion
                 
                 // Step 3: Get target camera details (near clip, fov, cockpit up)
@@ -416,6 +418,7 @@ namespace SETargetCamera
                         MyRender11.ResolutionI = (Vector2I)ogResolutionI;
                         MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
                     }
+                    if (ogShadowCameraFrozen != null) MyRender11.Settings.ShadowCameraFrozen = (bool)ogShadowCameraFrozen;
                 }
                
             }
