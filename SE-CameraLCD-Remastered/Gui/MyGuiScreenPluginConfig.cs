@@ -47,7 +47,7 @@ namespace CameraLCD.Gui
 
             pos.X -= 0.06f;
 
-            MyGuiControlSlider ratioSlider = new MyGuiControlSlider(pos, 2, 30, 0.2f, settings.Ratio, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, intValue: true);
+            MyGuiControlSlider ratioSlider = new MyGuiControlSlider(pos, 1, 30, 0.2f, settings.Ratio, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, intValue: true);
             ratioSlider.SetToolTip("Render camera view every nth frame.");
             ratioSlider.ValueChanged += RenderRatioChanged;
             Controls.Add(ratioSlider);
