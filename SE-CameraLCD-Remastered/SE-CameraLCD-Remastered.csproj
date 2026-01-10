@@ -51,6 +51,10 @@
       <HintPath>$(Bin64)\SpaceEngineers.ObjectBuilders.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe">
+      <HintPath>$(Bin64)\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="VRage">
       <HintPath>$(Bin64)\VRage.dll</HintPath>
       <Private>False</Private>
@@ -91,6 +95,7 @@
 
   <ItemGroup>
     <Publicize Include="Sandbox.Game" IncludeCompilerGeneratedMembers="false" />
+    <Publicize Include="VRage" IncludeCompilerGeneratedMembers="false" />
     <Publicize Include="VRage.Render" IncludeCompilerGeneratedMembers="false" />
     <Publicize Include="VRage.Render11" IncludeCompilerGeneratedMembers="false" />
   </ItemGroup>

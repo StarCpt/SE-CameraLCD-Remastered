@@ -1,9 +1,11 @@
-﻿using Sandbox.Game.Entities;
+﻿using CameraLCD.Patches;
+using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Blocks;
 using Sandbox.Game.Entities.Cube;
 using Sandbox.Game.GameSystems.TextSurfaceScripts;
 using Sandbox.Game.World;
 using Sandbox.ModAPI.Ingame;
+using SharpDX.Direct3D11;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,6 +18,7 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.Game.Utils;
 using VRage.Render.Scene;
 using VRage.Render11.Common;
+using VRage.Render11.Culling;
 using VRage.Render11.Resources;
 using VRageMath;
 using VRageRender;
@@ -307,7 +310,7 @@ namespace CameraLCD
             if (!IsActive || !_lcdComponent.m_textureGenerated || _lcdComponent.ContentType != ContentType.SCRIPT || _lcdComponent.Script != SCRIPT_ID)
                 return false;
 
-            MyCamera renderCamera = MySector.MainCamera;
+            MyCamera renderCamera = MySector.MainCamera; // TODO: fix race condition from directly accessing MyCamera
             if (renderCamera is null || renderCamera.GetDistanceFromPoint(_lcd.WorldMatrix.Translation) > Plugin.Settings.Range)
                 return false;
 
@@ -333,31 +336,78 @@ namespace CameraLCD
 
             var originalCameraState = CameraState.From(MyRender11.Environment.Matrices);
 
+            GetCameraViewMatrixAndPosition(_camera, out MatrixD cameraViewMatrix, out Vector3D cameraPos);
+
+            float fov = _camera.m_fov;
+            float aspectRatio = (float)surfaceRtv.Size.X / (float)surfaceRtv.Size.Y;
+            float nearPlane = renderCamera.NearPlaneDistance;
+            Matrix cameraProj = Matrix.CreatePerspectiveFovRhInfiniteComplementary(fov, aspectRatio, nearPlane);
+
+            Matrix cameraViewAt0 = cameraViewMatrix with
             {
-                // set state for CameraLCD rendering
-                SetRendererState(RendererState.GetCameraViewState(surfaceRtv.Size));
-                GetCameraViewMatrixAndPosition(_camera, out MatrixD cameraViewMatrix, out Vector3D cameraPos);
-                SetCameraViewMatrix(originalCameraState with
-                {
-                    ViewMatrix = cameraViewMatrix,
-                    Fov = _camera.GetFov(),
-                    NearPlane = renderCamera.NearPlaneDistance,
-                    FarPlane = renderCamera.FarPlaneDistance,
-                    CameraPos = cameraPos,
-                    ProjOffsetX = 0,
-                    ProjOffsetY = 0,
-                }, renderCamera.FarFarPlaneDistance, 1, false);
+                M14 = 0,
+                M24 = 0,
+                M34 = 0,
+                M41 = 0,
+                M42 = 0,
+                M43 = 0,
+                M44 = 1,
+            };
 
-                CameraViewRenderer.Draw(surfaceRtv);
+            Matrix cameraViewProjAt0 = cameraViewAt0 * cameraProj;
+            MatrixD cameraViewProj = cameraViewMatrix * cameraProj;
 
-                // restore camera settings
-                SetRendererState(originalRendererState);
-                SetCameraViewMatrix(originalCameraState, renderCamera.FarFarPlaneDistance, 0, false);
-            }
+            MyViewport cameraViewport = new MyViewport(surfaceRtv.Size);
 
-            MyRender11.RC.GenerateMips(surfaceRtv);
+            var depthTexture = MyManagers.RwTexturesPool.BorrowDepthStencil("", surfaceRtv.Size.X, surfaceRtv.Size.Y, false);
+            var tempRtv = MyManagers.RwTexturesPool.BorrowRtv("", surfaceRtv.Size.X, surfaceRtv.Size.Y, SharpDX.DXGI.Format.R8G8B8A8_UNorm);
+
+            MyRender11.RC.ClearDsv(depthTexture, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 0, 0);
+            MyRender11.RC.ClearRtv(tempRtv, default);
+
+            Patch_MyCullManager.CameraViewRtv = tempRtv;
+            Patch_MyCullManager.CameraLcdTexture = surfaceRtv;
+
+            // 0..5 are used by env probe cubemap
+            AddCameraPass(MyManagers.Cull.m_cullQueries, 6, ref cameraViewProjAt0, ref cameraViewProj, ref cameraPos, ref cameraProj, ref cameraViewport, depthTexture.Dsv, depthTexture.SrvDepth, tempRtv);
+
+            //{
+            //    // set state for CameraLCD rendering
+            //    SetRendererState(RendererState.GetCameraViewState(surfaceRtv.Size));
+            //    GetCameraViewMatrixAndPosition(_camera, out MatrixD cameraViewMatrix, out Vector3D cameraPos);
+            //    SetCameraViewMatrix(originalCameraState with
+            //    {
+            //        ViewMatrix = cameraViewMatrix,
+            //        Fov = _camera.GetFov(),
+            //        NearPlane = renderCamera.NearPlaneDistance,
+            //        FarPlane = renderCamera.FarPlaneDistance,
+            //        CameraPos = cameraPos,
+            //        ProjOffsetX = 0,
+            //        ProjOffsetY = 0,
+            //    }, renderCamera.FarFarPlaneDistance, 1, false);
+            //
+            //    CameraViewRenderer.Draw(surfaceRtv);
+            //
+            //    // restore camera settings
+            //    SetRendererState(originalRendererState);
+            //    SetCameraViewMatrix(originalCameraState, renderCamera.FarFarPlaneDistance, 0, false);
+            //}
+
+            //MyRender11.RC.GenerateMips(surfaceRtv);
 
             return true;
+        }
+
+        public static void AddCameraPass(MyCullQueries @this, int index, ref Matrix offsetedViewProjection, ref MatrixD viewProjection, ref Vector3D viewOrigin, ref Matrix projection, ref MyViewport viewport, IDsvBindable dsv, ISrvBindable srvDepth, IRtvBindable rtvNear)
+        {
+            BoundingFrustumD boundingFrustumD = @this.AllocateFrustum();
+            boundingFrustumD.Matrix = viewProjection;
+            MyCullQuery query = @this.AddView(MyViewType.EnvironmentProbe, index, boundingFrustumD, boundingFrustumD, ref offsetedViewProjection, ref viewOrigin, dsv, null);
+            MyForwardPass myForwardPass = @this.AddRenderPass<MyForwardPass>(query, ref viewport, ref projection);
+            myForwardPass.Dsv = dsv;
+            myForwardPass.DepthSrv = srvDepth;
+            myForwardPass.Rtvs[0] = rtvNear.Rtv;
+            //myForwardPass.Rtvs[1] = rtv1.Rtv;
         }
 
         private static void SetRendererState(RendererState state)

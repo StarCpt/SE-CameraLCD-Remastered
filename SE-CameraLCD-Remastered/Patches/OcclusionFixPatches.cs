@@ -11,7 +11,7 @@ namespace CameraLCD.Patches;
 /// <summary>
 /// Patches to fix SE's occlusion culling system making things invisible in camera view.
 /// </summary>
-[HarmonyPatch]
+//[HarmonyPatch]
 static class OcclusionFixPatches
 {
     const int GBUFFER_PASS_VIEW_ID = 0;
