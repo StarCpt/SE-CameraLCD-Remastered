@@ -323,6 +323,7 @@ namespace SETargetCamera
                 debugOverrides.Bloom = false;
                 float ogFarPLane = renderCamera.FarPlaneDistance;
                 ogShadowCameraFrozen = MyRender11.Settings.ShadowCameraFrozen;
+                MyRender11.Settings.ShadowCameraFrozen = true;
                 #endregion
                 
                 // Step 3: Get target camera details (near clip, fov, cockpit up)
