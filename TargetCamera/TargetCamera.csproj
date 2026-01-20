@@ -327,8 +327,23 @@
   <ItemGroup>
     <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\SE-VRageRenderAccessorLib\SE-VRageRenderAccessor.csproj" />
+    <Publicize Include="VRage.Render" IncludeCompilerGeneratedMembers="false" />
+    <Publicize Include="VRage.Render11" IncludeCompilerGeneratedMembers="false" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PublicizerClearCacheOnClean>true</PublicizerClearCacheOnClean>
+    <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer">
+      <Version>2.2.1</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <Target Name="CopyFiles" AfterTargets="Build">
