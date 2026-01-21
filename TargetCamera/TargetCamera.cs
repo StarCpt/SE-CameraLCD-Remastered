@@ -332,8 +332,6 @@ namespace SETargetCamera
                 MyRender11.DebugOverrides.Bloom = false;
                 MyRender11.Settings.ShadowCameraFrozen = true;
 
-                // set shadow cascade matrices
-
                 #endregion
                 
                 // Step 3: Get target camera details (near clip, fov, cockpit up)
