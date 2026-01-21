@@ -29,7 +29,7 @@ namespace SETargetCamera.Patches
             }
         }
 
-        [HarmonyPatch(nameof(MyShadowCascades.Gather))]
+        [HarmonyPatch(typeof(MyShadowCascades), nameof(MyShadowCascades.Gather))]
         [HarmonyPrefix]
         public static bool Gather_Prefix(MyShadowCascades __instance, MyRenderContext rc, ref MyCommon.MyScreenLayout layout, ISrvBindable srvDepth, int viewId)
         {
