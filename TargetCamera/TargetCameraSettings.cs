@@ -21,7 +21,7 @@ namespace SETargetCamera
         public Vector2I Pos { get; set; } = new Vector2I(25, 25);
         public Vector2I Size { get; set; } = new Vector2I(500, 500);
 
-        public float MinRange { get; set; } = 1000;
+        public float MinRange { get; set; } = 100;
 
         public double CameraSmoothing { get; set; } = 2000;
         public float BorderThickness { get; set; } = 1;
@@ -29,7 +29,10 @@ namespace SETargetCamera
         public Color BorderColor { get; set; } = Color.White;
 
         public byte FullscreenKey { get; set; } = (byte)MyKeys.M;
-
+        public bool DamageFeedbackEnabled { get; set; } = true;
+        public Color DamageFeedbackColor { get; set; } = new Color(255, 100, 100);
+        public float TargetIndicatorRadiusMin { get; set; } = 20f;
+        public float TargetIndicatorRadiusMax { get; set; } = 30f;
         public static TargetCameraSettings Load()
         {
             string file = FilePath;

@@ -16,6 +16,7 @@ namespace SETargetCamera.Gui
 
         private MyGuiControlCombobox ratioCombobox;
         private MyGuiControlLabel rangeLabel;
+        private MyGuiControlParent contentPanel;
         
 
         public MyGuiScreenPluginConfig() : base(new Vector2(0.5f, 0.5f), MyGuiConstants.SCREEN_BACKGROUND_COLOR, new Vector2(0.6f, 0.8f), false, null, MySandboxGame.Config.UIBkOpacity, MySandboxGame.Config.UIOpacity)
@@ -37,99 +38,65 @@ namespace SETargetCamera.Gui
 
         public override void RecreateControls(bool constructor)
         {
+            base.RecreateControls(constructor);
+
+            contentPanel = new MyGuiControlParent()
+            {
+                OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP,
+                Position = Vector2.Zero,
+                Size = new Vector2(0.51f, 1.2f),
+            };
+
+            var scrollPanel = new MyGuiControlScrollablePanel(contentPanel)
+            {
+                OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER,
+                Position = new Vector2(0f, 0.00f),
+                Size = new Vector2(0.55f, 0.6f),
+                ScrollbarVEnabled = true,
+                CanFocusChildren = true,
+                ScrolledAreaPadding = new MyGuiBorderThickness(0.005f),
+            };
+            Controls.Add(scrollPanel);
+            
             TargetCameraSettings settings = Plugin.Settings;
 
             MyGuiControlLabel caption = AddCaption("Target Camera Settings");
-            Vector2 pos = caption.Position;
-            pos.Y += (caption.Size.Y / 2) + space;
-
-            MyGuiControlSeparatorList sperators = new MyGuiControlSeparatorList();
+            Vector2 pos = new Vector2(contentPanel.Size.X / 2 - space * 2, -contentPanel.Size.Y / 2);
+            
+            
+            MyGuiControlSeparatorList seperators = new MyGuiControlSeparatorList();
             float sepWidth = Size.Value.X * 0.8f;
-            sperators.AddHorizontal(pos - new Vector2(sepWidth / 2, 0), sepWidth);
-            Controls.Add(sperators);
+            seperators.AddHorizontal(pos - new Vector2(sepWidth / 2, 0), sepWidth);
+            contentPanel.Controls.Add(seperators);
             pos.Y += space;
             
             // ENABLED
-            MyGuiControlCheckbox enabledCheckbox = new MyGuiControlCheckbox(pos, isChecked: settings.Enabled, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP);
-            enabledCheckbox.IsCheckedChanged += IsEnabledCheckedChanged;
-            Controls.Add(enabledCheckbox);
-            AddCaption(enabledCheckbox, "Enabled");
-            pos.Y += enabledCheckbox.Size.Y + space;
-            
-            // X
-            MyGuiControlTextbox xBox = new MyGuiControlTextbox(pos, settings.Pos.X.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
-            xBox.TextChanged += XPositionBoxChanged;
-            Controls.Add(xBox);
-            AddCaption(xBox, "X Position", true);
-            pos.Y += xBox.Size.Y + space;
-            
-            // Y
-            MyGuiControlTextbox yBox = new MyGuiControlTextbox(pos, settings.Pos.Y.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: -20000, maxNumericValue:20000);
-            yBox.TextChanged += YPositionBoxChanged;
-            Controls.Add(yBox);
-            AddCaption(yBox, "Y Position", true);
-            pos.Y += yBox.Size.Y + space;
-            
-            // WIDTH
-            MyGuiControlTextbox wBox = new MyGuiControlTextbox(pos, settings.Size.X.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
-            wBox.TextChanged += WidthBoxChanged;
-            Controls.Add(wBox);
-            AddCaption(wBox, "Width", true);
-            pos.Y += wBox.Size.Y + space;
-            
-            // HEIGHT
-            MyGuiControlTextbox hBox = new MyGuiControlTextbox(pos, settings.Size.Y.ToString(), 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 100, maxNumericValue:20000);
-            hBox.TextChanged += HeightBoxChanged;
-            Controls.Add(hBox);
-            AddCaption(hBox, "Height", true);
-            pos.Y += hBox.Size.Y + space;
-            
-            // MIN RANGE
-            MyGuiControlTextbox rangeBox = new MyGuiControlTextbox(pos, settings.MinRange.ToString(), type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 0);
-            rangeBox.TextChanged += RangeBoxChanged;
-            Controls.Add(rangeBox);
-            AddCaption(rangeBox, "Minimum Range", true);
-            pos.Y += wBox.Size.Y + space;
-            
-            // SMOOTHING
-            MyGuiControlTextbox smoothBox = new MyGuiControlTextbox(pos, settings.CameraSmoothing.ToString(), type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 1);
-            smoothBox.TextChanged += SmoothBoxChanged;
-            Controls.Add(smoothBox);
-            AddCaption(smoothBox, "Camera Smoothing", true);
-            pos.Y += wBox.Size.Y + space;
-            
-            // BORDER THICKNESS
-            MyGuiControlTextbox borderBox = new MyGuiControlTextbox(pos, settings.BorderThickness.ToString(), type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: 0);
-            borderBox.TextChanged += BorderBoxChanged;
-            Controls.Add(borderBox);
-            AddCaption(borderBox, "Border Thickness", true);
-            pos.Y += wBox.Size.Y + space * 10;
-            
+            pos = AddCheckbox(pos, settings.Enabled, "Enabled", IsEnabledCheckedChanged);
+
+            // POSITION & SIZE
+            pos = AddTextbox(pos, settings.Pos.X.ToString(), "X Position", -20000, 20000, tb => SetPosComponent(tb, true));
+            pos = AddTextbox(pos, settings.Pos.Y.ToString(), "Y Position", -20000, 20000, tb => SetPosComponent(tb, false));
+            pos = AddTextbox(pos, settings.Size.X.ToString(), "Width", 1, 20000, tb => SetSizeComponent(tb, true, 1));
+            pos = AddTextbox(pos, settings.Size.Y.ToString(), "Height", 1, 20000, tb => SetSizeComponent(tb, false, 1));
+
+            // CAMERA SETTINGS
+            pos = AddTextbox(pos, settings.MinRange.ToString(), "Minimum Range", 0, decimal.MaxValue, tb => SetNumericSetting(tb, v => Plugin.Settings.MinRange = (float)v, 0));
+            pos = AddTextbox(pos, settings.CameraSmoothing.ToString(), "Camera Smoothing", 1, decimal.MaxValue, tb => SetNumericSetting(tb, v => Plugin.Settings.CameraSmoothing = v, 1));
+            pos = AddTextbox(pos, settings.BorderThickness.ToString(), "Border Thickness", 0, decimal.MaxValue, tb => SetNumericSetting(tb, v => Plugin.Settings.BorderThickness = (float)v, 0));
+            pos = AddCheckbox(pos, settings.DamageFeedbackEnabled, "Damage Feedback", cb => Plugin.Settings.DamageFeedbackEnabled = cb.IsChecked);
+
             // BORDER COLOUR
-            MyGuiControlColor controlColor =
-                new MyGuiControlColor("", 0.95f, pos, settings.BorderColor, Color.White, MyCommonTexts.DialogAmount_SetValueCaption, true, isAutoscaleEnabled: false);
-            controlColor.Size = new Vector2(wBox.Size.X, wBox.Size.Y);
-            controlColor.OnChange += BorderColourChanged;
-            Controls.Add(controlColor);
-            AddCaption(controlColor, "", true);
-            
-            pos.Y += wBox.Size.Y + space * 10;
+            pos = AddColorControl(pos, settings.BorderColor, "Border Color", BorderColourChanged);
+            pos = AddColorControl(pos, settings.DamageFeedbackColor, "Damage Feedback Color", DamageFeedbackColourChanged);
+            // TARGET INDICATOR SETTINGS
+            pos = AddTextbox(pos, settings.TargetIndicatorRadiusMin.ToString(), "Target Indicator Radius Min", 0, decimal.MaxValue, tb => SetNumericSetting(tb, v => Plugin.Settings.TargetIndicatorRadiusMin = (float)v, 0));
+            pos = AddTextbox(pos, settings.TargetIndicatorRadiusMax.ToString(), "Target Indicator Radius Max", 0, decimal.MaxValue, tb => SetNumericSetting(tb, v => Plugin.Settings.TargetIndicatorRadiusMax = (float)v, 0));            
+            // FULLSCREEN KEY BINDING
+            pos = AddKeyBinding(pos, settings.FullscreenKey);
 
-
-            StringBuilder boundButton = new StringBuilder();
-            boundButton.Append(((MyKeys)settings.FullscreenKey == MyKeys.None) ? "None" : MyInput.Static.GetKeyName((MyKeys)settings.FullscreenKey));
-            var keybindBox = new MyGuiControlButton(originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_CENTER, text: boundButton, visualStyle: VRage.Game.MyGuiControlButtonStyleEnum.ControlSetting, onButtonClick: OnBindingKeyClick, onSecondaryButtonClick: OnBindingKeySecondaryClick, toolTip: "Click to edit.\nRight click to clear.");
-            keybindBox.Position = pos;
-            Controls.Add(keybindBox);
-            var bindingKeyLabel = new MyGuiControlLabel(originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER, text: "Fullscreen");
-            // pos.Y += wBox.Size.Y + space * 2;
-            bindingKeyLabel.Position = pos - wBox.Size.Y - space;
-            Controls.Add(bindingKeyLabel);
-            
-            pos.Y += wBox.Size.Y + space;
             // Bottom
-            pos = new Vector2(0, (m_size.Value.Y / 2) - space);
-            MyGuiControlButton closeButton = new MyGuiControlButton(pos, text: MyTexts.Get(MyCommonTexts.Close), originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM, onButtonClick: OnCloseClicked);
+            Vector2 closeButtonPos = new Vector2(0, (m_size.Value.Y / 2) - space);
+            MyGuiControlButton closeButton = new MyGuiControlButton(closeButtonPos, text: MyTexts.Get(MyCommonTexts.Close), originAlign: MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM, onButtonClick: OnCloseClicked);
             Controls.Add(closeButton);
         }
 
@@ -164,7 +131,54 @@ namespace SETargetCamera.Gui
 
         private void AddCaption(MyGuiControlBase control, string caption, bool offsetWidth = false)
         {
-            Controls.Add(new MyGuiControlLabel(control.Position + new Vector2(-space - (offsetWidth ? control.Size.X / 2 : 0), control.Size.Y / 2), text: caption, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_CENTER));
+
+            var pos = new Vector2(-contentPanel.Size.X / 2 + space * 2, control.PositionY);
+            
+            contentPanel.Controls.Add(new MyGuiControlLabel(pos, text: caption, originAlign: MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP));
+        }
+
+        private Vector2 AddCheckbox(Vector2 pos, bool isChecked, string label, Action<MyGuiControlCheckbox> onChanged)
+        {
+            var checkbox = new MyGuiControlCheckbox(pos, isChecked: isChecked, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_TOP);
+            checkbox.IsCheckedChanged += onChanged;
+            contentPanel.Controls.Add(checkbox);
+            AddCaption(checkbox, label);
+            return pos + new Vector2(0, checkbox.Size.Y + space);
+        }
+
+        private Vector2 AddTextbox(Vector2 pos, string text, string label, decimal minValue, decimal maxValue, Action<MyGuiControlTextbox> onChanged)
+        {
+            var textbox = new MyGuiControlTextbox(pos, text, 5, type: MyGuiControlTextboxType.DigitsOnly, minNumericValue: minValue, maxNumericValue: maxValue);
+            textbox.OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_TOP;
+            textbox.TextChanged += onChanged;
+            textbox.Size = new Vector2(0.1f, textbox.Size.Y);
+            contentPanel.Controls.Add(textbox);
+            AddCaption(textbox, label, true);
+            return pos + new Vector2(0, textbox.Size.Y + space);
+        }
+
+        private Vector2 AddColorControl(Vector2 pos, Color color, string label, Action<MyGuiControlColor> onChanged)
+        {
+            
+            var size = new Vector2(0.30f, 0.04f);
+            var pos2 = pos - new Vector2(size.X / 2, 0); // Colour control positions are handled weirdly. Thankskeen
+            var colorControl = new MyGuiControlColor("", 0.95f, pos, color, Color.White, MyCommonTexts.DialogAmount_SetValueCaption, true, isAutoscaleEnabled: false);
+            colorControl.OriginAlign = MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_TOP;
+            colorControl.Size = size;
+            colorControl.OnChange += onChanged;
+            
+            contentPanel.Controls.Add(colorControl);
+            AddCaption(colorControl, label, true);
+            return pos + new Vector2(0, colorControl.Size.Y + space * 2);
+        }
+
+        private Vector2 AddKeyBinding(Vector2 pos, byte keyCode)
+        {
+            var keyName = ((MyKeys)keyCode == MyKeys.None) ? "None" : MyInput.Static.GetKeyName((MyKeys)keyCode);
+            var keybindBox = new MyGuiControlButton(position: pos, originAlign: MyGuiDrawAlignEnum.HORISONTAL_RIGHT_AND_VERTICAL_TOP, text: new StringBuilder(keyName), visualStyle: VRage.Game.MyGuiControlButtonStyleEnum.ControlSetting, onButtonClick: OnBindingKeyClick, onSecondaryButtonClick: OnBindingKeySecondaryClick, toolTip: "Click to edit.\nRight click to clear.");
+            contentPanel.Controls.Add(keybindBox);
+            AddCaption(keybindBox, "Fullscreen");
+            return pos + new Vector2(0, keybindBox.Size.Y + space);
         }
 
         void IsEnabledCheckedChanged(MyGuiControlCheckbox cb)
@@ -172,52 +186,45 @@ namespace SETargetCamera.Gui
             Plugin.Settings.Enabled = cb.IsChecked;
         }
 
-        void XPositionBoxChanged(MyGuiControlTextbox tb)
+        private void SetPosComponent(MyGuiControlTextbox tb, bool isX)
         {
             var pos = Plugin.Settings.Pos;
-            pos.X = int.TryParse(tb.Text, out var result) ? result : 0;
-            Plugin.Settings.Pos = pos;
+            if (int.TryParse(tb.Text, out var result))
+            {
+                if (isX) pos.X = result;
+                else pos.Y = result;
+                Plugin.Settings.Pos = pos;
+            }
         }
 
-        void YPositionBoxChanged(MyGuiControlTextbox tb)
-        {
-            var pos = Plugin.Settings.Pos;
-            pos.Y = int.TryParse(tb.Text, out var result) ? result : 0;
-            Plugin.Settings.Pos = pos;
-        }
-
-        void WidthBoxChanged(MyGuiControlTextbox tb)
+        private void SetSizeComponent(MyGuiControlTextbox tb, bool isWidth, int minValue)
         {
             var size = Plugin.Settings.Size;
-            size.X = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
-            Plugin.Settings.Size = size;
+            if (int.TryParse(tb.Text, out var result))
+            {
+                result = Math.Max(result, minValue);
+                if (isWidth) size.X = result;
+                else size.Y = result;
+                Plugin.Settings.Size = size;
+            }
         }
 
-        void HeightBoxChanged(MyGuiControlTextbox tb)
+        private void SetNumericSetting(MyGuiControlTextbox tb, Action<double> setter, double minValue)
         {
-            var size = Plugin.Settings.Size;
-            size.Y = Math.Max(int.TryParse(tb.Text, out var result) ? result : 100, 100);
-            Plugin.Settings.Size = size;
-        }
-        
-        private void RangeBoxChanged(MyGuiControlTextbox tb)
-        {
-            Plugin.Settings.MinRange = Math.Max(float.TryParse(tb.Text, out var result) ? result : 0, 0);
-        }
-        
-        private void SmoothBoxChanged(MyGuiControlTextbox tb)
-        {
-            Plugin.Settings.CameraSmoothing = Math.Max(float.TryParse(tb.Text, out var result) ? result : 1, 1);
-        }
-        
-        private void BorderBoxChanged(MyGuiControlTextbox tb)
-        {
-            Plugin.Settings.BorderThickness = Math.Max(float.TryParse(tb.Text, out var result) ? result : 0, 0);
+            if (double.TryParse(tb.Text, out var result))
+            {
+                setter(Math.Max(result, minValue));
+            }
         }
         
         private void BorderColourChanged(MyGuiControlColor cb)
         {
             Plugin.Settings.BorderColor = cb.Color;
+        }
+
+        private void DamageFeedbackColourChanged(MyGuiControlColor cb)
+        {
+            Plugin.Settings.DamageFeedbackColor = cb.Color;
         }
     }
 }

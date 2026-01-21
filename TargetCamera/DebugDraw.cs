@@ -16,7 +16,7 @@ namespace SETargetCamera
             public float Thickness;
             public DateTime Expiry;
         }
-
+        
         private static readonly List<DebugLine> _lines = new List<DebugLine>();
 
         /// <summary>
@@ -54,7 +54,6 @@ namespace SETargetCamera
                 var color2 = (Vector4)line.Color;
                 
                 MySimpleObjectDraw.DrawLine(line.From, line.To, MyStringId.GetOrCompute("Debug"), ref color2, line.Thickness);
-                MyLog.Default.WriteLine("Drawing line :)");
             }
         }
     }

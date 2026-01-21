@@ -75,8 +75,15 @@ namespace SETargetCamera
         private static Vector3D _targetOffset;
 
 
-        private static bool _withinRange = false;
-        
+        private static bool _withinMinRange = false;
+
+        private static Stopwatch _hitFeedbackTimer = new Stopwatch();
+        private static double _radiusAnimationTime = 0;
+
+        // Target indicator configuration
+        private const float TargetIndicatorAnimationLoopTime = 1.0f; // seconds
+        private const float VelocityPredictionFrameRate = 60f;
+
         public static void ModLoad()
         {
             MyLog.Default.Log(MyLogSeverity.Info, "Target Camera binding MySession events");
@@ -107,9 +114,14 @@ namespace SETargetCamera
 
         public static void Update()
         {
+            // Track animation time using actual delta time
+            _radiusAnimationTime += DisplayFrameTimer.TimeSinceUpdateMs / (1000 * TargetIndicatorAnimationLoopTime);
+            if (_radiusAnimationTime >= 1.0)
+                _radiusAnimationTime -= 1.0;
+
             UpdateScreenSize();
-            DrawTargetPos();
-            
+            UpdateHitFeedback();
+
             if (!Plugin.Settings.Enabled) return;
             DisplayFrameTimer.Stopwatch.Restart();
             // Step 1: Get the targeted entity and controlled grid
@@ -156,17 +168,19 @@ namespace SETargetCamera
             _shipOffset = cockpit.CubeGrid.WorldMatrix.Translation - cockpit.CubeGrid.PositionComp.WorldAABB.Center;
             _targetOffset = _targetEntity.WorldMatrix.Translation - _targetEntity.PositionComp.WorldAABB.Center;
 
-
-
+            // Check if target is within minimum range
             if ((_targetEntity.PositionComp.WorldAABB.Center - cockpit.CubeGrid.PositionComp.WorldAABB.Center).Length() <
                 Plugin.Settings.MinRange)
             {
-                _withinRange = true;
+                _withinMinRange = true;
                 return;
             }
             
 
-            _withinRange = false;
+            _withinMinRange = false;
+
+            // Now that range is calculated, draw the target indicator
+            DrawTargetPos();
             // Creating the border
 
             float border = Plugin.Settings.BorderThickness;
@@ -182,6 +196,8 @@ namespace SETargetCamera
             // TODO: Extract function
             DrawRectangle(x, y, width, height, border, color);
 
+            // Draw labels below the rectangle
+            DrawCameraLabels(x, y, width, height);
 
             if (_targetEntity is MyCubeGrid grid)
             {
@@ -200,6 +216,85 @@ namespace SETargetCamera
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref right, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref bottom, null, color, 0, false, true);
             MyRenderProxy.DrawSprite("Textures\\GUI\\Blank.dds", ref top, null, color, 0, false, true);
+        }
+
+        private static void DrawCameraLabels(float x, float y, float width, float height)
+        {
+            // Convert FOV from radians to degrees
+            float fovDegrees = MathHelper.ToDegrees(_fov);
+
+            // Negate azimuth so positive is to the right (clockwise), then normalize to 0-360 range
+            float azimuthDegrees = -MathHelper.ToDegrees((float)_currentAzimuth);
+            azimuthDegrees += azimuthDegrees < 0 ? 360f : 0f;
+
+            float elevationDegrees = MathHelper.ToDegrees((float)_currentElevation);
+
+            // Format the text
+            string fovText = $"FOV: {fovDegrees:F3}°";
+            string azimuthText = $"AZ: {azimuthDegrees:F1}°";
+            string elevationText = $"EL: {elevationDegrees:F1}°";
+
+            // Combine all labels into one line
+            string combinedText = $"{fovText}  {azimuthText}  {elevationText}";
+
+            // Position below the rectangle
+            float labelY = y + height + 5; // 5 pixels below the rectangle
+            float labelX = x;
+
+            // Get screen size for normalization
+            var screenSize = MyGuiManager.GetFullscreenRectangle();
+
+            // Convert pixel coordinates to normalized coordinates (-1 to 1)
+            Vector2 pos = new Vector2(
+                labelX, labelY
+            );
+
+            // Text scale
+            float textScale = 0.7f;
+            Color textColor = Plugin.Settings.BorderColor;
+
+            MyRenderProxy.DrawString(
+                0, // font index (0 = default monospace font)
+                pos,
+                textColor,
+                combinedText,
+                textScale, // screenScale
+                screenSize.Width, // screenMaxWidth
+                false // ignoreBounds
+            );
+
+            // Draw target entity name label 20 pixels below
+            string targetNameText = GetTargetEntityName();
+            if (!string.IsNullOrEmpty(targetNameText))
+            {
+                Vector2 targetNamePos = new Vector2(labelX, labelY + 20);
+                MyRenderProxy.DrawString(
+                    0, // font index (0 = default monospace font)
+                    targetNamePos,
+                    textColor,
+                    targetNameText,
+                    textScale, // screenScale
+                    screenSize.Width, // screenMaxWidth
+                    false // ignoreBounds
+                );
+            }
+        }
+
+        private static string GetTargetEntityName()
+        {
+            if (_targetEntity == null)
+                return string.Empty;
+
+            // Check if it's a grid
+            if (_targetEntity is MyCubeGrid grid)
+                return grid.DisplayName;
+
+            // Check if it's a character (player)
+            if (_targetEntity is MyCharacter character)
+                return character.DisplayName;
+
+            // Otherwise use the entity's friendly name
+            return _targetEntity.DisplayName;
         }
 
         private static void UpdateScreenSize()
@@ -234,8 +329,6 @@ namespace SETargetCamera
 
                 List<IHitInfo> hitResult = new List<IHitInfo>();
                 MyAPIGateway.Physics.CastRay(_virtualCameraPos, _virtualCameraPos + ray * 100000, hitResult);
-                var colour = new Vector4(255, 255, 255, 255);
-                //DebugDraw.DrawLine(_virtualCameraPos, _virtualCameraPos + ray * 100000, colour, 2, 60);
                 
                 
                 // Sort all hits by distance from _virtualCameraPos
@@ -278,14 +371,15 @@ namespace SETargetCamera
         private static MatrixD _targetCameraViewMatrix;
         private static Vector3D _targetCameraForward;
         private static Vector3D _targetCameraUp;
+        private static double _currentAzimuth;
+        private static double _currentElevation;
 
         public static void Draw()
         {
-            
             DebugDraw.Draw();
             
             
-            if (!Plugin.Settings.Enabled || _withinRange) return;
+            if (!Plugin.Settings.Enabled || _withinMinRange) return;
 
             RendererState? originalRendererState = null;
 
@@ -362,8 +456,11 @@ namespace SETargetCamera
 
                 _fov = (float)MathHelper.Lerp(_previousFov, _fov, _easeLerpSpeed);
                 _previousFov = _fov;
-                
-                
+
+                // Calculate azimuth and elevation
+                var dirCockpitSpace = Vector3D.TransformNormal(dir, MatrixD.Transpose(_cockpit.WorldMatrix));
+                Vector3D.GetAzimuthAndElevation(dirCockpitSpace, out _currentAzimuth, out _currentElevation);
+
                 _virtualCameraPos = shipPos + dir * controlledGrid.PositionComp.WorldVolume.Radius;
 
                 // Step 4: Create a camera matrix from the current controlled grid, with a near clipping plane that excludes the current grid, pointed at the target, and FOV scaled
@@ -381,19 +478,24 @@ namespace SETargetCamera
                 // Draw the game to the screen
                 var backbufferFormat = Patch_MyRender11.RenderTarget.Rtv.Description.Format;
                 var borrowedRtv = MyManagers.RwTexturesPool.BorrowRtv(TextureName, size.X, size.Y, backbufferFormat);
-                
+
                 MyRender11.DrawGameScene(borrowedRtv, out var debugAmbientOcclusion);
                 
                 debugAmbientOcclusion.Release();
-                
-                
+
                 // Placing the actual image onto the screen
                 MyRender11.DeviceInstance.ImmediateContext1.CopySubresourceRegion(
-                    borrowedRtv.Resource, 0, null, 
-                    Patch_MyRender11.RenderTarget.Resource, 0, 
+                    borrowedRtv.Resource, 0, null,
+                    Patch_MyRender11.RenderTarget.Resource, 0,
                     (int)_pos.X, (int)_pos.Y
                     );
                 borrowedRtv.Release();
+
+                // Draw hit feedback circles in screen space on the target camera display
+                // Create a projection matrix for the target camera based on its FOV and aspect ratio
+                float aspect = _size.X / _size.Y;
+                Matrix targetProjectionMatrix = Matrix.CreatePerspectiveFieldOfView(_fov, aspect, targetCameraNearPlane, (float)dist * 2);
+                HitFeedbackManager.DrawAllScreenSpace(_pos, _size, _targetCameraViewMatrix, targetProjectionMatrix, _virtualCameraPos);
 
                 #region restore post-processing and lod settings
 
@@ -419,32 +521,41 @@ namespace SETargetCamera
         {
             if (!_usesWc) return;
             var posMaybe = WeaponCoreInterop.GetPaintedTargetLocalPosition();
-            if (posMaybe.HasValue && _targetEntity != null && _targetEntity.Physics != null)
+            if (posMaybe.HasValue && _targetEntity?.Physics != null)
             {
                 
                 var pos = posMaybe.Value;
-                var worldPos = Vector3D.Transform(pos, _targetEntity.WorldMatrix) + _targetEntity.Physics.LinearVelocity / 60;
+                var worldPos = Vector3D.Transform(pos, _targetEntity.WorldMatrix) + _targetEntity.Physics.LinearVelocity / VelocityPredictionFrameRate;
                 MatrixD worldMatrix = MatrixD.CreateTranslation(worldPos);
                 Color color = Plugin.Settings.BorderColor;
-                float radius = 2f;
-                float lineThickness = 0.2f;
-                int divisions = 16;
-                MySimpleObjectDraw.DrawTransparentSphere(
-                    ref worldMatrix,
-                    radius,
-                    ref color,
-                    MySimpleObjectRasterizer.Solid,
-                    divisions,
-                    MyStringId.GetOrCompute("Debug"),
-                    MyStringId.GetOrCompute("Debug"),
-                    lineThickness,
-                    customViewProjectionMatrix: -1,
-                    persistentBillboards: null,
-                    blendType: MyBillboard.BlendTypeEnum.AdditiveTop,
-                    intensity: 3f
-                );
+
+                // Calculate sinusoidal radius animation
+                float radiusAvg = ( Plugin.Settings.TargetIndicatorRadiusMin + Plugin.Settings.TargetIndicatorRadiusMax) / 2f;
+                float radiusAmplitude = (Plugin.Settings.TargetIndicatorRadiusMax -  Plugin.Settings.TargetIndicatorRadiusMin) / 2f;
+                float radius = radiusAvg + radiusAmplitude * (float)Math.Sin(2 * Math.PI * _radiusAnimationTime);
+                
+                
+                if (_fov <= 0 || _fov > Math.PI) return;
+
+                var perspective = Matrix.CreatePerspectiveFieldOfView(_fov, _size.X / _size.Y, 5, 50);
+                Vector2 screenSpacePoint = ScreenSpaceDrawing.WorldToScreenSpace(worldPos, _pos, _size, _targetCameraViewMatrix, perspective, out bool isValid);
+                ScreenSpaceDrawing.Circle(screenSpacePoint, radius, color);
+                ScreenSpaceDrawing.Circle(screenSpacePoint, Plugin.Settings.TargetIndicatorRadiusMax, color);
                 
             }
+        }
+
+        private static void UpdateHitFeedback()
+        {
+            if (!_hitFeedbackTimer.IsRunning)
+            {
+                _hitFeedbackTimer.Start();
+            }
+
+            float deltaTime = (float)_hitFeedbackTimer.Elapsed.TotalSeconds;
+            _hitFeedbackTimer.Restart();
+
+            HitFeedbackManager.Update(deltaTime);
         }
         
 
@@ -600,8 +711,26 @@ namespace SETargetCamera
                 _targetEntity = target;
             }
         }
-        
-        
+
+        /// <summary>
+        /// Checks if the given grid is the currently targeted entity
+        /// </summary>
+        public static bool IsGridTargeted(MyCubeGrid grid)
+        {
+            if (grid == null || _targetEntity == null)
+                return false;
+
+            // Check if the target entity is the grid itself
+            if (_targetEntity == grid)
+                return true;
+
+            // Check if the target entity is a cube grid and matches
+            if (_targetEntity is MyCubeGrid targetGrid && targetGrid == grid)
+                return true;
+
+            return false;
+        }
+
         public static Vector3 Project2DToWorldDir(
             Vector2 pos2D, Vector2 displayPos, Vector2 displaySize,
             Vector3 camForward, Vector3 camUp, float fovY)
