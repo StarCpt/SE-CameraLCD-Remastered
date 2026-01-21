@@ -259,8 +259,18 @@ namespace SETargetCamera
                 }
             }
         }
-        
 
+        private struct RendererState
+        {
+            public bool Lodding;
+            public bool DrawBillboards;
+            public bool Flares;
+            public bool SSAO;
+            public bool Bloom;
+            public bool ShadowCameraFrozen;
+            public Vector2I ViewportResolution;
+            public Vector2I ResolutionI;
+        }
 
         private static double _easeLerpSpeed = 0;
         private static double _easeLerpSpeed2 = 0;
@@ -276,14 +286,9 @@ namespace SETargetCamera
             
             
             if (!Plugin.Settings.Enabled || _withinRange) return;
-            bool? ogLods = null;
-            bool? ogDrawBillboards = null;
-            bool? ogFlares = null;
-            bool? ogSSAO = null;
-            bool? ogBloom = null;
-            Vector2I? ogResolutionI = null;
-            MyRenderDebugOverrides debugOverrides = null;
-            bool? ogShadowCameraFrozen = null;
+
+            RendererState? originalRendererState = null;
+
             try
             {
                 MyRender11.Settings.SkipGlobalROWMUpdate = true;
@@ -309,19 +314,24 @@ namespace SETargetCamera
                 
                 #region disble post-processing effects and lod changes
 
-                ogLods = SetLoddingEnabled(false);
-                ogDrawBillboards = MyRender11.Settings.DrawBillboards;
+                originalRendererState = new RendererState
+                {
+                    Lodding = SetLoddingEnabled(false),
+                    DrawBillboards = MyRender11.Settings.DrawBillboards,
+                    Flares = MyRender11.DebugOverrides.Flares,
+                    SSAO = MyRender11.DebugOverrides.SSAO,
+                    Bloom = MyRender11.DebugOverrides.Bloom,
+                    ShadowCameraFrozen = MyRender11.Settings.ShadowCameraFrozen,
+                    ViewportResolution = MyRender11.ViewportResolution,
+                    ResolutionI = MyRender11.ResolutionI,
+                };
+
                 MyRender11.Settings.DrawBillboards = true;
-                debugOverrides = MyRender11.DebugOverrides;
-                ogFlares = debugOverrides.Flares;
-                ogSSAO = debugOverrides.SSAO;
-                ogBloom = debugOverrides.Bloom;
-                debugOverrides.Flares = true;
-                debugOverrides.SSAO = false;
-                debugOverrides.Bloom = false;
-                float ogFarPLane = renderCamera.FarPlaneDistance;
-                ogShadowCameraFrozen = MyRender11.Settings.ShadowCameraFrozen;
+                MyRender11.DebugOverrides.Flares = true;
+                MyRender11.DebugOverrides.SSAO = false;
+                MyRender11.DebugOverrides.Bloom = false;
                 MyRender11.Settings.ShadowCameraFrozen = true;
+
                 #endregion
                 
                 // Step 3: Get target camera details (near clip, fov, cockpit up)
@@ -361,7 +371,6 @@ namespace SETargetCamera
                 _targetCameraViewMatrix = MatrixD.CreateLookAt(_virtualCameraPos, _targetPos, _targetCameraUp);
 
                 // Step 5: Move the game camera to that matrix, take a image snapshot, then move it back
-                ogResolutionI = MyRender11.ResolutionI;
 
                 Vector2I size = (Vector2I)_size;
                 
@@ -386,42 +395,24 @@ namespace SETargetCamera
                     );
                 borrowedRtv.Release();
 
-                // Restore camera position
-                MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
-                MyRender11.m_resolution = (Vector2I)ogResolutionI;
-                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.Position, 0);
-
                 #region restore post-processing and lod settings
 
-                SetLoddingEnabled((bool)ogLods);
-                MyRender11.Settings.DrawBillboards = (bool)ogDrawBillboards;
-                debugOverrides.Flares = (bool)ogFlares;
-                debugOverrides.SSAO = (bool)ogSSAO;
-                debugOverrides.Bloom = (bool)ogBloom;
+                SetRendererState(originalRendererState.Value);
 
                 #endregion
+
+                // Restore camera position
+                SetCameraViewMatrix(renderCamera.ViewMatrix, renderCamera.ProjectionMatrix, renderCamera.ProjectionMatrixFar, renderCamera.FieldOfView, renderCamera.FieldOfView, renderCamera.NearPlaneDistance, renderCamera.FarPlaneDistance, renderCamera.Position, 0);
             }
             catch (Exception ex)
             {
                 MyLog.Default.Log(MyLogSeverity.Critical, ex.ToString());
 
-                if (debugOverrides != null)
+                if (originalRendererState.HasValue)
                 {
-                    if (ogLods != null) SetLoddingEnabled((bool)ogLods);
-                    if (ogDrawBillboards != null) MyRender11.Settings.DrawBillboards = (bool)ogDrawBillboards;
-                    if (ogFlares != null) debugOverrides.Flares = (bool)ogFlares;
-                    if (ogSSAO != null) debugOverrides.SSAO = (bool)ogSSAO;
-                    if (ogBloom != null) debugOverrides.Bloom = (bool)ogBloom;
-                    if (ogResolutionI != null)
-                    {
-                        MyRender11.m_resolution = (Vector2I)ogResolutionI;
-                        MyRender11.ViewportResolution = (Vector2I)ogResolutionI;
-                    }
-                    if (ogShadowCameraFrozen != null) MyRender11.Settings.ShadowCameraFrozen = (bool)ogShadowCameraFrozen;
+                    SetRendererState(originalRendererState.Value);
                 }
-               
             }
-            
         }
 
         private static void DrawTargetPos()
@@ -548,6 +539,18 @@ namespace SETargetCamera
         }
 
 
+        private static void SetRendererState(RendererState state)
+        {
+            SetLoddingEnabled(state.Lodding);
+            MyRender11.Settings.DrawBillboards = state.DrawBillboards;
+            MyRender11.DebugOverrides.Flares = state.Flares;
+            MyRender11.DebugOverrides.SSAO = state.SSAO;
+            MyRender11.DebugOverrides.Bloom = state.Bloom;
+            MyRender11.Settings.ShadowCameraFrozen = state.ShadowCameraFrozen;
+
+            MyRender11.ViewportResolution = state.ViewportResolution;
+            MyRender11.m_resolution = state.ResolutionI;
+        }
 
         
         private static bool SetLoddingEnabled(bool enabled)
