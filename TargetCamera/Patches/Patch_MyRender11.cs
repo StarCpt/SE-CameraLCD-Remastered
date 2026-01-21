@@ -9,6 +9,8 @@ namespace SETargetCamera.Patches
     [HarmonyPatch]
     public static class Patch_MyRender11
     {
+        public static bool DrawingCameraLcds => _drawingCameraLcds;
+
         private static bool _drawingCameraLcds = false;
 
         [HarmonyPatch(typeof(MyRender11), nameof(MyRender11.DrawGameScene))]
